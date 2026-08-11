@@ -44,9 +44,16 @@ In VS Code, select the physical phone using **Flutter: Select Device**, then pre
 Release-device smoke test and APK creation:
 
 ```bash
+# Copy android/key.properties.example to android/key.properties and use a protected release keystore first.
 flutter run --release -d <physical-device-id>
 flutter build apk --release
 ```
+
+AURUM intentionally never falls back to the Android debug signing key for a release artifact. Keep `android/key.properties` and the keystore outside Git.
+
+## Production-readiness status
+
+The Phase 7 report currently concludes **NOT READY — FIX REQUIRED** because database migration, live API, Flutter analyzer/test, signed-release, and physical-Android validation are blocked in this sandbox. See [`docs/PHASE_7_PRODUCTION_READINESS_REPORT.md`](docs/PHASE_7_PRODUCTION_READINESS_REPORT.md) and [`docs/PHASE_7_MASTER_QA_CHECKLIST.md`](docs/PHASE_7_MASTER_QA_CHECKLIST.md).
 
 ## Non-secret configuration
 

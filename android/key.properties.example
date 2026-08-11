@@ -1,0 +1,6 @@
+# Copy to android/key.properties on the release-signing workstation only.
+# Do not commit the real file, keystore, alias password, key password, or signing credential.
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=aurum_release
+storeFile=/absolute/path/to/aurum-release.jks

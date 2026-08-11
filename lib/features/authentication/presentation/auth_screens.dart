@@ -292,3 +292,12 @@ String? _validateEmail(String? value) {
   if (normalized.isEmpty || !normalized.contains('@') || !normalized.contains('.')) return 'Enter a valid email address.';
   return null;
 }
+
+String? _validateRegistrationPassword(String? value) {
+  final password = value ?? '';
+  if (password.length < 12) return 'Use at least 12 characters.';
+  if (!RegExp(r'[a-z]').hasMatch(password) || !RegExp(r'[A-Z]').hasMatch(password) || !RegExp(r'[0-9]').hasMatch(password)) {
+    return 'Include uppercase, lowercase, and a number.';
+  }
+  return null;
+}
