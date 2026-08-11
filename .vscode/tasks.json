@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "AURUM API: dev server",
+      "type": "npm",
+      "script": "dev",
+      "path": "backend",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "AURUM API: tests",
+      "type": "npm",
+      "script": "test",
+      "path": "backend",
+      "problemMatcher": []
+    }
+  ]
+}

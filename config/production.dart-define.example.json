@@ -1,0 +1,11 @@
+{
+  "AURUM_ENV": "production",
+  "AURUM_BACKEND_MODE": "remote",
+  "AURUM_API_BASE_URL": "https://api.example.com",
+  "AURUM_MARKET_DATA_MODE": "remote",
+  "AURUM_MARKET_PROVIDER": "aurum-backend-proxy",
+  "AURUM_MARKET_API_BASE_URL": "https://api.example.com",
+  "AURUM_MARKET_API_KEY": "",
+  "AURUM_ENABLE_NETWORK_LOGGING": false,
+  "AURUM_ENABLE_TELEMETRY": false
+}
