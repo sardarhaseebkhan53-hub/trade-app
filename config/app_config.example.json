@@ -1,0 +1,5 @@
+{
+  "environment": "development",
+  "apiBaseUrl": "https://api.example.invalid",
+  "enableTelemetry": false
+}

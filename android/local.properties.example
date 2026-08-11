@@ -1,0 +1,4 @@
+# Copy to android/local.properties and update the paths for your workstation.
+# This file is intentionally not tracked because it is machine-specific.
+sdk.dir=/absolute/path/to/Android/Sdk
+flutter.sdk=/absolute/path/to/flutter
