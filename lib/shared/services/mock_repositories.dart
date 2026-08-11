@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../models/market_data_models.dart';
 import '../models/market_models.dart';
 import 'repositories.dart';
 
@@ -100,18 +101,30 @@ class MockMarketRepository implements MarketRepository {
   ];
 
   @override
-  Future<MarketAsset> getAsset(String assetId) async {
+  Future<MarketSnapshot<MarketAsset>> getAsset(String assetId) async {
     await Future<void>.delayed(_latency);
-    return _assets.firstWhere(
+    final asset = _assets.firstWhere(
       (MarketAsset item) => item.id == assetId,
       orElse: () => _assets.first,
+    );
+    return _snapshot(asset);
+  }
+
+  @override
+  Future<MarketSnapshot<List<MarketAsset>>> getAssetsByIds(
+    Iterable<String> assetIds,
+  ) async {
+    await Future<void>.delayed(_latency);
+    final requested = assetIds.toSet();
+    return _snapshot(
+      _assets.where((MarketAsset asset) => requested.contains(asset.id)).toList(growable: false),
     );
   }
 
   @override
-  Future<List<double>> getChart(String assetId, String timeframe) async {
+  Future<MarketSnapshot<ChartSeries>> getChart(String assetId, String timeframe) async {
     await Future<void>.delayed(const Duration(milliseconds: 520));
-    final asset = await getAsset(assetId);
+    final asset = (await getAsset(assetId)).data;
     final multiplier = switch (timeframe) {
       '1H' => 0.55,
       '4H' => 0.7,
@@ -120,15 +133,30 @@ class MockMarketRepository implements MarketRepository {
       '1M' => 1.75,
       _ => 2.1,
     };
-    return asset.sparkline
-        .map((double point) => point * multiplier)
-        .toList(growable: false);
+    final now = DateTime.now().toUtc();
+    final prices = List<HistoricalPrice>.generate(
+      asset.sparkline.length,
+      (int index) => HistoricalPrice(
+        timestamp: now.subtract(Duration(minutes: (asset.sparkline.length - index) * 5)),
+        priceUsd: asset.sparkline[index] * multiplier,
+      ),
+      growable: false,
+    );
+    return _snapshot(
+      ChartSeries(
+        prices: prices,
+        volumes: const <VolumeData>[],
+        requestedTimeframe: timeframe,
+        sourceIntervalLabel: 'demo-derived $timeframe view',
+      ),
+      interval: 'demo-derived $timeframe view',
+    );
   }
 
   @override
-  Future<List<MarketAsset>> getFeaturedAssets() async {
+  Future<MarketSnapshot<List<MarketAsset>>> getFeaturedAssets() async {
     await Future<void>.delayed(_latency);
-    return _assets.take(3).toList(growable: false);
+    return _snapshot(_assets.take(3).toList(growable: false));
   }
 
   @override
@@ -138,68 +166,95 @@ class MockMarketRepository implements MarketRepository {
       TechnicalIndicator(
         label: 'RSI (14)',
         value: '58.2',
-        interpretation: 'Neutral momentum',
+        interpretation: 'Demo neutral momentum',
         direction: MarketDirection.neutral,
       ),
       TechnicalIndicator(
         label: 'MACD',
         value: 'Positive',
-        interpretation: 'Momentum is improving',
+        interpretation: 'Demo momentum context',
         direction: MarketDirection.bullish,
       ),
       TechnicalIndicator(
         label: 'EMA 20/50',
         value: 'Above',
-        interpretation: 'Price holds trend support',
+        interpretation: 'Demo trend context',
         direction: MarketDirection.bullish,
       ),
       TechnicalIndicator(
         label: 'Volume',
         value: '1.08×',
-        interpretation: 'Near its recent average',
+        interpretation: 'Demo volume context',
         direction: MarketDirection.neutral,
       ),
     ];
   }
 
   @override
-  Future<List<MarketAsset>> getMarkets({String query = ''}) async {
+  Future<MarketSnapshot<List<MarketAsset>>> getMarkets({String query = ''}) async {
     await Future<void>.delayed(_latency);
     final normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) return _assets;
-    return _assets
-        .where(
-          (MarketAsset asset) =>
-              asset.name.toLowerCase().contains(normalized) ||
-              asset.symbol.toLowerCase().contains(normalized),
-        )
-        .toList(growable: false);
+    final values = normalized.isEmpty
+        ? _assets
+        : _assets
+            .where(
+              (MarketAsset asset) =>
+                  asset.name.toLowerCase().contains(normalized) ||
+                  asset.symbol.toLowerCase().contains(normalized),
+            )
+            .toList(growable: false);
+    return _snapshot(values);
   }
 
   @override
-  Future<MarketSentiment> getSentiment() async {
-    await Future<void>.delayed(_latency);
-    return MarketSentiment(
-      score: 64,
-      label: 'Greed',
-      change: 4.0,
-      asOf: DateTime.now().subtract(const Duration(minutes: 7)),
-    );
+  Future<MarketSnapshot<List<OHLCData>>> getOhlc(String assetId, String timeframe) async {
+    final chart = await getChart(assetId, timeframe);
+    final candles = chart.data.prices.map((HistoricalPrice point) => OHLCData(
+      timestamp: point.timestamp,
+      open: point.priceUsd * 0.995,
+      high: point.priceUsd * 1.01,
+      low: point.priceUsd * 0.99,
+      close: point.priceUsd,
+    )).toList(growable: false);
+    return _snapshot(candles, interval: 'demo-derived OHLC');
   }
 
   @override
-  Future<AssetStatistics> getStatistics(String assetId) async {
+  Future<MarketSnapshot<MarketOverview>> getOverview() async {
     await Future<void>.delayed(_latency);
-    final asset = await getAsset(assetId);
-    return AssetStatistics(
+    return _snapshot(MarketOverview(
+      totalMarketCapUsd: 2.48e12,
+      totalVolumeUsd: 86.2e9,
+      marketCapChange24h: 1.8,
+      btcDominance: 54.2,
+      activeCryptocurrencies: 12400,
+      updatedAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  @override
+  Future<MarketSnapshot<AssetStatistics>> getStatistics(String assetId) async {
+    await Future<void>.delayed(_latency);
+    final asset = (await getAsset(assetId)).data;
+    return _snapshot(AssetStatistics(
       marketCap: asset.marketCap,
       volume24h: asset.volume,
       dayHigh: asset.price * 1.028,
       dayLow: asset.price * 0.967,
       circulatingSupply: asset.id == 'bitcoin' ? '19.8M BTC' : '—',
       allTimeHigh: asset.id == 'bitcoin' ? 73750.07 : asset.price * 1.45,
-    );
+    ));
   }
+
+  MarketSnapshot<T> _snapshot<T>(T data, {String? interval}) => MarketSnapshot(
+    data: data,
+    asOf: DateTime.now().toUtc(),
+    source: 'Demo mock data',
+    isCached: false,
+    isStale: false,
+    sourceIntervalLabel: interval,
+  );
+
 }
 
 class MockSignalRepository implements SignalRepository {

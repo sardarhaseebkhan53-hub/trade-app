@@ -276,7 +276,7 @@ class AssetHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(asset.name, style: AurumTypography.h2),
-              Text(asset.symbol, style: AurumTypography.label),
+              Text(asset.rank > 0 ? '${asset.symbol} • Rank #${asset.rank}' : asset.symbol, style: AurumTypography.label),
             ],
           ),
         ),

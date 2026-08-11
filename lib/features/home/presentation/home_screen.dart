@@ -7,6 +7,7 @@ import '../../../app/theme/aurum_radius.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/models/market_data_models.dart';
 import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
@@ -19,7 +20,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authControllerProvider).valueOrNull;
-    final sentiment = ref.watch(sentimentProvider);
+    final overview = ref.watch(marketOverviewProvider);
     final featured = ref.watch(featuredAssetsProvider);
     final insight = ref.watch(marketInsightProvider);
     final signals = ref.watch(signalsProvider);
@@ -30,10 +31,12 @@ class HomeScreen extends ConsumerWidget {
         child: RefreshIndicator(
           color: AurumColors.gold,
           onRefresh: () async {
-            ref.invalidate(sentimentProvider);
+            ref.invalidate(marketOverviewProvider);
             ref.invalidate(featuredAssetsProvider);
             ref.invalidate(marketInsightProvider);
             ref.invalidate(signalsProvider);
+            await ref.read(marketOverviewProvider.future);
+            await ref.read(featuredAssetsProvider.future);
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -44,30 +47,39 @@ class HomeScreen extends ConsumerWidget {
                   delegate: SliverChildListDelegate(<Widget>[
                     _Header(name: profile?.isGuest ?? true ? 'Guest analyst' : profile?.name ?? 'Analyst'),
                     const SizedBox(height: AurumSpacing.xxl),
-                    const SectionHeader(title: 'Market pulse', subtitle: 'Demo data • Refresh for the latest mock snapshot'),
+                    const SectionHeader(title: 'Market pulse', subtitle: 'Global market context'),
                     const SizedBox(height: AurumSpacing.sm),
-                    sentiment.when(
-                      data: (MarketSentiment data) => _MarketPulse(sentiment: data),
+                    overview.when(
+                      data: (MarketSnapshot<MarketOverview> data) => _MarketPulse(snapshot: data),
                       loading: () => const LoadingSkeleton(height: 176),
-                      error: (_, __) => AurumErrorState(title: 'Unable to load market pulse', message: 'Try refreshing this demo workspace.', onRetry: () => ref.invalidate(sentimentProvider)),
+                      error: (_, __) => AurumErrorState(title: 'Unable to update market data', message: 'Check your connection and try again.', onRetry: () => ref.invalidate(marketOverviewProvider)),
                     ),
                     const SizedBox(height: AurumSpacing.xxl),
-                    SectionHeader(title: 'Featured assets', actionLabel: 'View markets', onAction: () => context.go('/markets')),
+                    SectionHeader(title: 'Featured assets', subtitle: 'Top assets from the configured market provider', actionLabel: 'View markets', onAction: () => context.go('/markets')),
                     const SizedBox(height: AurumSpacing.sm),
                     featured.when(
-                      data: (List<MarketAsset> assets) => Column(
-                        children: assets.map((MarketAsset asset) => Padding(
-                          padding: const EdgeInsets.only(bottom: AurumSpacing.sm),
-                          child: CryptoCard(
-                            asset: asset,
-                            isWatched: watched.contains(asset.id),
-                            onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(asset.id),
-                            onTap: () => context.push('/asset/${asset.id}'),
+                      data: (MarketSnapshot<List<MarketAsset>> snapshot) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          ...snapshot.data.map((MarketAsset asset) => Padding(
+                            padding: const EdgeInsets.only(bottom: AurumSpacing.sm),
+                            child: CryptoCard(
+                              asset: asset,
+                              isWatched: watched.contains(asset.id),
+                              onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(asset.id),
+                              onTap: () => context.push('/asset/${asset.id}'),
+                            ),
+                          )),
+                          Text(
+                            '${snapshot.source} • ${snapshot.freshnessLabel} • ${AurumFormatters.compactDate(snapshot.asOf)}',
+                            style: AurumTypography.caption.copyWith(
+                              color: snapshot.isStale ? AurumColors.warning : AurumColors.textTertiary,
+                            ),
                           ),
-                        )).toList(),
+                        ],
                       ),
                       loading: () => const _StackedSkeletons(count: 3),
-                      error: (_, __) => AurumErrorState(title: 'Assets are unavailable', message: 'The demo market list could not be loaded.', onRetry: () => ref.invalidate(featuredAssetsProvider)),
+                      error: (_, __) => AurumErrorState(title: 'Unable to update market data', message: 'Featured assets are temporarily unavailable.', onRetry: () => ref.invalidate(featuredAssetsProvider)),
                     ),
                     const SizedBox(height: AurumSpacing.xxl),
                     const SectionHeader(title: 'AI market insight', subtitle: 'Evidence-led analytical context'),
@@ -78,7 +90,7 @@ class HomeScreen extends ConsumerWidget {
                       error: (_, __) => AurumErrorState(title: 'AI analysis unavailable', message: 'Market data remains available. Please try again shortly.', onRetry: () => ref.invalidate(marketInsightProvider)),
                     ),
                     const SizedBox(height: AurumSpacing.xxl),
-                    SectionHeader(title: 'Current signals', actionLabel: 'View all', onAction: () => context.go('/signals')),
+                    SectionHeader(title: 'Current signals', subtitle: 'Demo signal preview • Phase 5 replaces this feed', actionLabel: 'View all', onAction: () => context.go('/signals')),
                     const SizedBox(height: AurumSpacing.sm),
                     signals.when(
                       data: (List<AnalysisSignal> data) => Column(
@@ -95,7 +107,7 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(height: AurumSpacing.sm),
                     _QuickActions(),
                     const SizedBox(height: AurumSpacing.md),
-                    const Text('AURUM demo data is illustrative only • Not financial advice', style: AurumTypography.caption),
+                    const Text('Market prices are sourced from the configured provider. Analysis preview is demo-only • Not financial advice', style: AurumTypography.caption),
                   ]),
                 ),
               ),
@@ -144,45 +156,55 @@ class _Header extends StatelessWidget {
 }
 
 class _MarketPulse extends StatelessWidget {
-  const _MarketPulse({required this.sentiment});
-  final MarketSentiment sentiment;
+  const _MarketPulse({required this.snapshot});
+  final MarketSnapshot<MarketOverview> snapshot;
 
   @override
   Widget build(BuildContext context) {
+    final overview = snapshot.data;
+    final positive = overview.marketCapChange24h >= 0;
+    final tone = positive ? AurumColors.positive : AurumColors.negative;
     return AurumCard(
       padding: const EdgeInsets.all(AurumSpacing.lg),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
         Row(children: <Widget>[
-          SizedBox(
-            width: 86,
-            height: 86,
-            child: Stack(alignment: Alignment.center, children: <Widget>[
-              SizedBox(width: 86, height: 86, child: CircularProgressIndicator(value: sentiment.score / 100, strokeWidth: 8, color: AurumColors.gold, backgroundColor: AurumColors.border)),
-              Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                Text('${sentiment.score}', style: AurumTypography.priceCard),
-                Text(sentiment.label, style: AurumTypography.caption),
-              ]),
+          Container(
+            width: 78,
+            height: 78,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: tone, width: 2), color: tone.withOpacity(0.08)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              Text('${overview.btcDominance.toStringAsFixed(1)}%', style: AurumTypography.priceRow.copyWith(color: AurumColors.textPrimary)),
+              const Text('BTC dom.', style: AurumTypography.caption),
             ]),
           ),
           const SizedBox(width: AurumSpacing.lg),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-            Text('Market sentiment', style: AurumTypography.h3),
+            Text('Global market cap', style: AurumTypography.h3),
             const SizedBox(height: AurumSpacing.xs),
-            Text('${sentiment.change >= 0 ? '+' : ''}${sentiment.change.toStringAsFixed(0)} points from the prior reading', style: AurumTypography.body),
-            const SizedBox(height: AurumSpacing.xs),
-            Text('Source context • ${AurumFormatters.compactDate(sentiment.asOf)}', style: AurumTypography.caption),
+            Text(AurumFormatters.compactCurrency(overview.totalMarketCapUsd), style: AurumTypography.priceCard),
+            const SizedBox(height: AurumSpacing.xxs),
+            Text('${positive ? '+' : ''}${overview.marketCapChange24h.toStringAsFixed(2)}% over 24h', style: AurumTypography.body.copyWith(color: tone)),
           ])),
         ]),
         const SizedBox(height: AurumSpacing.lg),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AurumSpacing.sm),
-          decoration: BoxDecoration(color: AurumColors.surface, borderRadius: AurumRadius.control),
-          child: const Text('Sentiment is one market context signal, not a forecast.', style: AurumTypography.caption),
-        ),
+        Row(children: <Widget>[
+          Expanded(child: _PulseMetric(label: '24h volume', value: AurumFormatters.compactCurrency(overview.totalVolumeUsd))),
+          Expanded(child: _PulseMetric(label: 'Tracked assets', value: overview.activeCryptocurrencies.toString())),
+        ]),
+        const SizedBox(height: AurumSpacing.sm),
+        Text('${snapshot.source} • ${snapshot.freshnessLabel} • ${AurumFormatters.compactDate(snapshot.asOf)}', style: AurumTypography.caption.copyWith(color: snapshot.isStale ? AurumColors.warning : AurumColors.textTertiary)),
       ]),
     );
   }
+}
+
+class _PulseMetric extends StatelessWidget {
+  const _PulseMetric({required this.label, required this.value});
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[Text(label, style: AurumTypography.caption), const SizedBox(height: AurumSpacing.xxs), Text(value, style: AurumTypography.priceRow)]);
 }
 
 class _QuickActions extends StatelessWidget {

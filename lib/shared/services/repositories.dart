@@ -1,13 +1,16 @@
+import '../models/market_data_models.dart';
 import '../models/market_models.dart';
 
 abstract interface class MarketRepository {
-  Future<List<MarketAsset>> getMarkets({String query = ''});
-  Future<List<MarketAsset>> getFeaturedAssets();
-  Future<MarketAsset> getAsset(String assetId);
-  Future<MarketSentiment> getSentiment();
-  Future<AssetStatistics> getStatistics(String assetId);
+  Future<MarketSnapshot<List<MarketAsset>>> getMarkets({String query = ''});
+  Future<MarketSnapshot<List<MarketAsset>>> getFeaturedAssets();
+  Future<MarketSnapshot<List<MarketAsset>>> getAssetsByIds(Iterable<String> assetIds);
+  Future<MarketSnapshot<MarketAsset>> getAsset(String assetId);
+  Future<MarketSnapshot<MarketOverview>> getOverview();
+  Future<MarketSnapshot<AssetStatistics>> getStatistics(String assetId);
   Future<List<TechnicalIndicator>> getIndicators(String assetId);
-  Future<List<double>> getChart(String assetId, String timeframe);
+  Future<MarketSnapshot<ChartSeries>> getChart(String assetId, String timeframe);
+  Future<MarketSnapshot<List<OHLCData>>> getOhlc(String assetId, String timeframe);
 }
 
 abstract interface class SignalRepository {

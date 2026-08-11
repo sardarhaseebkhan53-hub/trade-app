@@ -112,12 +112,12 @@ class AssetStatistics {
     required this.allTimeHigh,
   });
 
-  final double marketCap;
-  final double volume24h;
-  final double dayHigh;
-  final double dayLow;
+  final double? marketCap;
+  final double? volume24h;
+  final double? dayHigh;
+  final double? dayLow;
   final String circulatingSupply;
-  final double allTimeHigh;
+  final double? allTimeHigh;
 }
 
 class TechnicalIndicator {

@@ -48,16 +48,23 @@ flutter build apk --release
 
 ## Non-secret configuration
 
-`config/app_config.example.json` documents safe, public configuration values. Runtime configuration is read from `--dart-define`:
+`config/app_config.example.json` and `.env.example` document placeholders only; `.env.example` is not loaded at runtime. Runtime configuration is read from `--dart-define`:
 
 ```bash
 flutter run \
-  --dart-define=AURUM_ENV=development \
-  --dart-define=AURUM_API_BASE_URL=https://api.example.invalid \
-  --dart-define=AURUM_ENABLE_TELEMETRY=false
+  --dart-define=AURUM_MARKET_DATA_MODE=remote \
+  --dart-define=AURUM_MARKET_PROVIDER=coingecko \
+  --dart-define=AURUM_MARKET_API_BASE_URL=https://api.coingecko.com/api/v3 \
+  --dart-define=AURUM_MARKET_API_KEY=YOUR_DEVELOPMENT_DEMO_KEY
 ```
 
-Never add market-provider, AI-provider, database, signing, push, or privileged API credentials to Dart source, assets, defines, or Git. Those belong to the AURUM backend/secret infrastructure in later phases.
+Use explicit mock mode for offline UI work:
+
+```bash
+flutter run --dart-define=AURUM_MARKET_DATA_MODE=mock
+```
+
+Never add market-provider, AI-provider, database, signing, push, or privileged API credentials to Dart source, assets, defines, or Git. A `--dart-define` key is suitable only for local development; a production mobile app must use an AURUM backend proxy for private provider credentials.
 
 ## Architecture
 

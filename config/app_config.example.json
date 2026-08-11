@@ -1,5 +1,10 @@
 {
   "environment": "development",
   "apiBaseUrl": "https://api.example.invalid",
-  "enableTelemetry": false
+  "enableTelemetry": false,
+  "marketDataMode": "remote",
+  "marketProvider": "coingecko",
+  "marketApiBaseUrl": "https://api.coingecko.com/api/v3",
+  "marketApiKey": "DO_NOT_COMMIT_A_REAL_KEY",
+  "enableNetworkLogging": false
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
+import '../../../shared/models/market_data_models.dart';
 import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
@@ -16,7 +17,7 @@ class WatchlistScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ids = ref.watch(watchlistProvider);
-    final markets = ref.watch(marketsProvider(''));
+    final assets = ref.watch(watchlistAssetsProvider);
     return Scaffold(
       appBar: AurumAppBar(
         title: 'Watchlist',
@@ -27,30 +28,40 @@ class WatchlistScreen extends ConsumerWidget {
         child: ids.when(
           loading: () => const LoadingList(count: 3),
           error: (_, __) => AurumErrorState(title: 'Watchlist unavailable', message: 'Try loading your saved assets again.', onRetry: () => ref.invalidate(watchlistProvider)),
-          data: (Set<String> watchedIds) => markets.when(
-            loading: () => const LoadingList(count: 3),
-            error: (_, __) => AurumErrorState(title: 'Market data unavailable', message: 'Your saved assets will reappear when market data returns.', onRetry: () => ref.invalidate(marketsProvider(''))),
-            data: (List<MarketAsset> assets) {
-              final watched = assets.where((MarketAsset asset) => watchedIds.contains(asset.id)).toList();
-              if (watched.isEmpty) {
-                return AurumEmptyState(title: 'Your watchlist is empty', message: 'Add an asset from Markets to keep its context close.', icon: Icons.star_outline_rounded, actionLabel: 'Explore markets', onAction: () => context.go('/markets'));
-              }
-              return RefreshIndicator(
+          data: (Set<String> watchedIds) {
+            if (watchedIds.isEmpty) {
+              return AurumEmptyState(title: 'Your watchlist is empty', message: 'Add an asset from Markets to keep its context close.', icon: Icons.star_outline_rounded, actionLabel: 'Explore markets', onAction: () => context.go('/markets'));
+            }
+            return assets.when(
+              loading: () => const LoadingList(count: 3),
+              error: (_, __) => AurumErrorState(title: 'Unable to update market data', message: 'Your saved assets will reappear when the provider is available.', onRetry: () => ref.invalidate(watchlistAssetsProvider)),
+              data: (MarketSnapshot<List<MarketAsset>> snapshot) => RefreshIndicator(
                 color: AurumColors.gold,
-                onRefresh: () async { ref.invalidate(watchlistProvider); ref.invalidate(marketsProvider('')); },
+                onRefresh: () async {
+                  ref.invalidate(watchlistAssetsProvider);
+                  await ref.read(watchlistAssetsProvider.future);
+                },
                 child: ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(AurumSpacing.lg),
-                  itemCount: watched.length,
+                  itemCount: snapshot.data.length + 1,
                   separatorBuilder: (_, __) => const SizedBox(height: AurumSpacing.sm),
                   itemBuilder: (BuildContext context, int index) {
-                    final asset = watched[index];
+                    if (index == 0) {
+                      return Text(
+                        '${snapshot.source} • ${snapshot.freshnessLabel}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: snapshot.isStale ? AurumColors.warning : AurumColors.textTertiary,
+                            ),
+                      );
+                    }
+                    final asset = snapshot.data[index - 1];
                     return CryptoCard(asset: asset, showMarketStats: true, isWatched: true, onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(asset.id), onTap: () => context.push('/asset/${asset.id}'));
                   },
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

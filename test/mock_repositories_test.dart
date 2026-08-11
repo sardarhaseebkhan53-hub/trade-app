@@ -6,9 +6,11 @@ void main() {
     test('returns a deterministic market list', () async {
       final repository = MockMarketRepository();
 
-      final assets = await repository.getMarkets();
+      final snapshot = await repository.getMarkets();
+      final assets = snapshot.data;
 
       expect(assets, isNotEmpty);
+      expect(snapshot.source, 'Demo mock data');
       expect(assets.first.id, 'bitcoin');
       expect(assets.every((asset) => asset.sparkline.isNotEmpty), isTrue);
     });
@@ -16,7 +18,7 @@ void main() {
     test('filters by asset symbol', () async {
       final repository = MockMarketRepository();
 
-      final assets = await repository.getMarkets(query: 'eth');
+      final assets = (await repository.getMarkets(query: 'eth')).data;
 
       expect(assets.single.symbol, 'ETH');
     });

@@ -27,7 +27,7 @@ class _AiAnalysisScreenState extends ConsumerState<AiAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final analysis = ref.watch(aiAnalysisProvider(_assetId));
-    final assets = ref.watch(featuredAssetsProvider).valueOrNull ?? const <MarketAsset>[];
+    final assets = ref.watch(featuredAssetsProvider).valueOrNull?.data ?? const <MarketAsset>[];
     return Scaffold(
       appBar: AurumAppBar(
         title: 'AURUM AI Desk',

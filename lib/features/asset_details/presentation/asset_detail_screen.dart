@@ -7,6 +7,8 @@ import '../../../app/theme/aurum_radius.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../markets/data/chart_data_adapter.dart';
+import '../../../shared/models/market_data_models.dart';
 import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
@@ -32,21 +34,22 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     final watched = ref.watch(watchlistProvider).valueOrNull ?? <String>{};
     return Scaffold(
       appBar: AurumAppBar(
-        title: asset.valueOrNull?.symbol ?? 'Asset',
+        title: asset.valueOrNull?.data.symbol ?? 'Asset',
         leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded)),
       ),
       body: asset.when(
         loading: () => const LoadingList(count: 4),
         error: (_, __) => AurumErrorState(title: 'Asset unavailable', message: 'This demo asset is not currently available.', onRetry: () => ref.invalidate(assetProvider(widget.assetId))),
-        data: (MarketAsset data) => _Body(asset: data, watched: watched.contains(data.id), timeframe: _timeframe, onTimeframeChanged: (String value) => setState(() => _timeframe = value), onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(data.id)),
+        data: (MarketSnapshot<MarketAsset> snapshot) => _Body(asset: snapshot.data, assetSnapshot: snapshot, watched: watched.contains(snapshot.data.id), timeframe: _timeframe, onTimeframeChanged: (String value) => setState(() => _timeframe = value), onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(snapshot.data.id)),
       ),
     );
   }
 }
 
 class _Body extends ConsumerWidget {
-  const _Body({required this.asset, required this.watched, required this.timeframe, required this.onTimeframeChanged, required this.onWatchToggle});
+  const _Body({required this.asset, required this.assetSnapshot, required this.watched, required this.timeframe, required this.onTimeframeChanged, required this.onWatchToggle});
   final MarketAsset asset;
+  final MarketSnapshot<MarketAsset> assetSnapshot;
   final bool watched;
   final String timeframe;
   final ValueChanged<String> onTimeframeChanged;
@@ -68,17 +71,17 @@ class _Body extends ConsumerWidget {
           const SizedBox(height: AurumSpacing.lg),
           Text(AurumFormatters.price(asset.price), style: AurumTypography.priceHero),
           const SizedBox(height: AurumSpacing.xs),
-          Row(children: <Widget>[PriceChangeBadge(value: asset.change24h), const SizedBox(width: AurumSpacing.sm), const Text('24h movement • Demo data', style: AurumTypography.caption)]),
+          Row(children: <Widget>[PriceChangeBadge(value: asset.change24h), const SizedBox(width: AurumSpacing.sm), Expanded(child: Text('24h movement • ${assetSnapshot.source} • ${assetSnapshot.freshnessLabel}', overflow: TextOverflow.ellipsis, style: AurumTypography.caption))]),
           const SizedBox(height: AurumSpacing.xl),
           _TimeframeSelector(value: timeframe, onChanged: onTimeframeChanged),
           const SizedBox(height: AurumSpacing.sm),
           chart.when(
-            data: (List<double> points) => MarketChart(points: points, timeframe: timeframe),
+            data: (MarketSnapshot<ChartSeries> snapshot) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[MarketChart(points: ChartDataAdapter.toLinePoints(snapshot.data), timeframe: timeframe), const SizedBox(height: AurumSpacing.xs), Text('${snapshot.source} • ${snapshot.sourceIntervalLabel ?? snapshot.data.sourceIntervalLabel} • ${snapshot.freshnessLabel}', style: AurumTypography.caption.copyWith(color: snapshot.isStale ? AurumColors.warning : AurumColors.textTertiary))]),
             loading: () => const LoadingSkeleton(height: 242),
             error: (_, __) => AurumErrorState(title: 'Chart unavailable', message: 'Try a different range or refresh.', onRetry: () => ref.invalidate(chartProvider(ChartRequest(asset.id, timeframe)))),
           ),
           const SizedBox(height: AurumSpacing.xxl),
-          const SectionHeader(title: 'Technical context', subtitle: 'Tap an indicator for its interpretation'),
+          const SectionHeader(title: 'Technical context', subtitle: 'Phase 5 preview — not live indicator output'),
           const SizedBox(height: AurumSpacing.sm),
           indicators.when(
             data: (List<TechnicalIndicator> data) => Wrap(spacing: AurumSpacing.xs, runSpacing: AurumSpacing.xs, children: data.map((TechnicalIndicator indicator) => IndicatorChip(indicator: indicator)).toList()),
@@ -97,7 +100,7 @@ class _Body extends ConsumerWidget {
           const SectionHeader(title: 'Market statistics'),
           const SizedBox(height: AurumSpacing.sm),
           statistics.when(
-            data: (AssetStatistics data) => _StatisticsGrid(data: data),
+            data: (MarketSnapshot<AssetStatistics> snapshot) => _StatisticsGrid(data: snapshot.data, freshness: '${snapshot.source} • ${snapshot.freshnessLabel}'),
             loading: () => const LoadingSkeleton(height: 160),
             error: (_, __) => const _UnavailableCard(message: 'Market statistics are temporarily unavailable.'),
           ),
@@ -155,20 +158,22 @@ class _AiPreview extends StatelessWidget {
 }
 
 class _StatisticsGrid extends StatelessWidget {
-  const _StatisticsGrid({required this.data});
+  const _StatisticsGrid({required this.data, required this.freshness});
   final AssetStatistics data;
+  final String freshness;
 
   @override
   Widget build(BuildContext context) {
     final entries = <(String, String)>[
-      ('Market cap', AurumFormatters.compactCurrency(data.marketCap)),
-      ('24h volume', AurumFormatters.compactCurrency(data.volume24h)),
-      ('24h high', AurumFormatters.price(data.dayHigh)),
-      ('24h low', AurumFormatters.price(data.dayLow)),
+      ('Market cap', _formatCompact(data.marketCap)),
+      ('24h volume', _formatCompact(data.volume24h)),
+      ('24h high', _formatPrice(data.dayHigh)),
+      ('24h low', _formatPrice(data.dayLow)),
       ('Circulating', data.circulatingSupply),
-      ('All-time high', AurumFormatters.price(data.allTimeHigh)),
+      ('All-time high', _formatPrice(data.allTimeHigh)),
     ];
-    return GridView.count(
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+      GridView.count(
       crossAxisCount: 2,
       mainAxisSpacing: AurumSpacing.xs,
       crossAxisSpacing: AurumSpacing.xs,
@@ -176,8 +181,17 @@ class _StatisticsGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: entries.map((entry) => AurumCard(padding: const EdgeInsets.all(AurumSpacing.sm), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[Text(entry.$1, style: AurumTypography.caption), const SizedBox(height: AurumSpacing.xxs), Text(entry.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: AurumTypography.priceRow)]))).toList(),
-    );
+    ),
+      const SizedBox(height: AurumSpacing.xs),
+      Text(freshness, style: AurumTypography.caption),
+    ]);
   }
+
+  String _formatCompact(double? value) =>
+      value == null ? 'Unavailable' : AurumFormatters.compactCurrency(value);
+
+  String _formatPrice(double? value) =>
+      value == null ? 'Unavailable' : AurumFormatters.price(value);
 }
 
 class _RiskCard extends StatelessWidget {

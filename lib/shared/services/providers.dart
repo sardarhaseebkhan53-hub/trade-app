@@ -1,47 +1,52 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/networking/market_api_client.dart';
+import '../../features/markets/data/coin_gecko_market_service.dart';
+import '../../features/markets/data/remote_market_repository.dart';
+import '../models/market_data_models.dart';
 import '../models/market_models.dart';
 import 'mock_repositories.dart';
 import 'repositories.dart';
 
 final appConfigProvider = Provider<AppConfig>((Ref ref) => AppConfig.fromEnvironment());
 
-final marketRepositoryProvider = Provider<MarketRepository>(
-  (Ref ref) => MockMarketRepository(),
-);
-final signalRepositoryProvider = Provider<SignalRepository>(
-  (Ref ref) => MockSignalRepository(),
-);
-final aiAnalysisRepositoryProvider = Provider<AiAnalysisRepository>(
-  (Ref ref) => MockAiAnalysisRepository(),
-);
-final watchlistRepositoryProvider = Provider<WatchlistRepository>(
-  (Ref ref) => MockWatchlistRepository(),
-);
-final notificationRepositoryProvider = Provider<NotificationRepository>(
-  (Ref ref) => MockNotificationRepository(),
-);
-final authRepositoryProvider = Provider<AuthRepository>(
-  (Ref ref) => MockAuthRepository(),
-);
+final marketApiClientProvider = Provider<MarketApiClient>((Ref ref) {
+  final client = HttpMarketApiClient(config: ref.watch(appConfigProvider));
+  ref.onDispose(client.dispose);
+  return client;
+});
 
-final marketsProvider = FutureProvider.autoDispose.family<List<MarketAsset>, String>(
+final marketRepositoryProvider = Provider<MarketRepository>((Ref ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.marketDataMode == MarketDataMode.mock) return MockMarketRepository();
+  return RemoteMarketRepository(
+    service: CoinGeckoMarketService(ref.watch(marketApiClientProvider)),
+  );
+});
+
+final signalRepositoryProvider = Provider<SignalRepository>((Ref ref) => MockSignalRepository());
+final aiAnalysisRepositoryProvider = Provider<AiAnalysisRepository>((Ref ref) => MockAiAnalysisRepository());
+final watchlistRepositoryProvider = Provider<WatchlistRepository>((Ref ref) => MockWatchlistRepository());
+final notificationRepositoryProvider = Provider<NotificationRepository>((Ref ref) => MockNotificationRepository());
+final authRepositoryProvider = Provider<AuthRepository>((Ref ref) => MockAuthRepository());
+
+final marketsProvider = FutureProvider.autoDispose.family<MarketSnapshot<List<MarketAsset>>, String>(
   (Ref ref, String query) => ref.read(marketRepositoryProvider).getMarkets(query: query),
 );
-final featuredAssetsProvider = FutureProvider<List<MarketAsset>>(
+final featuredAssetsProvider = FutureProvider<MarketSnapshot<List<MarketAsset>>>(
   (Ref ref) => ref.read(marketRepositoryProvider).getFeaturedAssets(),
 );
-final sentimentProvider = FutureProvider<MarketSentiment>(
-  (Ref ref) => ref.read(marketRepositoryProvider).getSentiment(),
+final marketOverviewProvider = FutureProvider<MarketSnapshot<MarketOverview>>(
+  (Ref ref) => ref.read(marketRepositoryProvider).getOverview(),
 );
 final marketInsightProvider = FutureProvider<MarketInsight>(
   (Ref ref) => ref.read(aiAnalysisRepositoryProvider).getMarketInsight(),
 );
-final assetProvider = FutureProvider.autoDispose.family<MarketAsset, String>(
+final assetProvider = FutureProvider.autoDispose.family<MarketSnapshot<MarketAsset>, String>(
   (Ref ref, String assetId) => ref.read(marketRepositoryProvider).getAsset(assetId),
 );
-final statisticsProvider = FutureProvider.autoDispose.family<AssetStatistics, String>(
+final statisticsProvider = FutureProvider.autoDispose.family<MarketSnapshot<AssetStatistics>, String>(
   (Ref ref, String assetId) => ref.read(marketRepositoryProvider).getStatistics(assetId),
 );
 final indicatorsProvider = FutureProvider.autoDispose.family<List<TechnicalIndicator>, String>(
@@ -73,9 +78,13 @@ class ChartRequest {
   int get hashCode => Object.hash(assetId, timeframe);
 }
 
-final chartProvider = FutureProvider.autoDispose.family<List<double>, ChartRequest>(
+final chartProvider = FutureProvider.autoDispose.family<MarketSnapshot<ChartSeries>, ChartRequest>(
   (Ref ref, ChartRequest request) =>
       ref.read(marketRepositoryProvider).getChart(request.assetId, request.timeframe),
+);
+final ohlcProvider = FutureProvider.autoDispose.family<MarketSnapshot<List<OHLCData>>, ChartRequest>(
+  (Ref ref, ChartRequest request) =>
+      ref.read(marketRepositoryProvider).getOhlc(request.assetId, request.timeframe),
 );
 
 class WatchlistController extends AsyncNotifier<Set<String>> {
@@ -101,6 +110,11 @@ class WatchlistController extends AsyncNotifier<Set<String>> {
 final watchlistProvider = AsyncNotifierProvider<WatchlistController, Set<String>>(
   WatchlistController.new,
 );
+
+final watchlistAssetsProvider = FutureProvider<MarketSnapshot<List<MarketAsset>>>((Ref ref) async {
+  final ids = await ref.watch(watchlistProvider.future);
+  return ref.read(marketRepositoryProvider).getAssetsByIds(ids);
+});
 
 class AuthController extends AsyncNotifier<AurumProfile> {
   @override
