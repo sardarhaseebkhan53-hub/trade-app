@@ -2,12 +2,6 @@ import 'package:flutter/material.dart';
 
 enum MarketDirection { bullish, neutral, bearish }
 
-enum SignalStatus { active, watching, updated, invalidated, completed, archived }
-
-enum SignalStrength { developing, confirmed, strong }
-
-enum RiskLevel { low, moderate, elevated }
-
 enum NotificationKind { signal, price, market, system }
 
 class MarketAsset {
@@ -40,68 +34,6 @@ class MarketAsset {
   bool get isPositive => change24h >= 0;
 }
 
-class MarketSentiment {
-  const MarketSentiment({
-    required this.score,
-    required this.label,
-    required this.change,
-    required this.asOf,
-  });
-
-  final int score;
-  final String label;
-  final double change;
-  final DateTime asOf;
-}
-
-class MarketInsight {
-  const MarketInsight({
-    required this.title,
-    required this.summary,
-    required this.direction,
-    required this.observation,
-    required this.asOf,
-  });
-
-  final String title;
-  final String summary;
-  final MarketDirection direction;
-  final String observation;
-  final DateTime asOf;
-}
-
-class AnalysisSignal {
-  const AnalysisSignal({
-    required this.id,
-    required this.assetId,
-    required this.pair,
-    required this.direction,
-    required this.strength,
-    required this.riskLevel,
-    required this.status,
-    required this.issuedAt,
-    required this.priceSnapshot,
-    required this.entryZone,
-    required this.invalidation,
-    required this.thesis,
-    required this.indicators,
-  });
-
-  final String id;
-  final String assetId;
-  final String pair;
-  final MarketDirection direction;
-  final SignalStrength strength;
-  final RiskLevel riskLevel;
-  final SignalStatus status;
-  final DateTime issuedAt;
-  final double priceSnapshot;
-  final String entryZone;
-  final String invalidation;
-  final String thesis;
-  final List<String> indicators;
-}
-
 class AssetStatistics {
   const AssetStatistics({
     required this.marketCap,
@@ -132,36 +64,6 @@ class TechnicalIndicator {
   final String value;
   final String interpretation;
   final MarketDirection direction;
-}
-
-class AiAnalysis {
-  const AiAnalysis({
-    required this.assetId,
-    required this.headline,
-    required this.direction,
-    required this.confidence,
-    required this.summary,
-    required this.technicalView,
-    required this.momentum,
-    required this.volatility,
-    required this.observations,
-    required this.scenarios,
-    required this.risks,
-    required this.asOf,
-  });
-
-  final String assetId;
-  final String headline;
-  final MarketDirection direction;
-  final int confidence;
-  final String summary;
-  final String technicalView;
-  final String momentum;
-  final String volatility;
-  final List<String> observations;
-  final List<AnalysisScenario> scenarios;
-  final List<String> risks;
-  final DateTime asOf;
 }
 
 class AnalysisScenario {

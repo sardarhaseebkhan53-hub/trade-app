@@ -1,16 +1,18 @@
 # AURUM
 
-AURUM is a premium, mobile-first cryptocurrency **market-analysis and decision-support** application built with Flutter and Dart. It presents mock market context, charts, AI-analysis layouts, signals, watchlists and notifications in Phase 3. It does **not** execute trades, custody assets, promise outcomes, or contain production market/AI credentials.
+AURUM is a premium, mobile-first cryptocurrency **market-analysis and decision-support** application built with Flutter and Dart. It presents provider-normalized market context, technical analysis, structured intelligence, explainable signals, watchlists and notifications. It does **not** execute trades, custody assets, promise outcomes, or contain production market/AI credentials.
 
 ## Current phase
 
-**Phase 3 — Flutter foundation + premium mock-backed UI**
+**Phase 5 — Technical analysis + structured market intelligence**
 
-- Central AURUM Obsidian theme, components and responsive mobile shell
-- Riverpod state management and GoRouter route structure
-- Mock repositories behind API-ready interfaces
-- No real market, AI, transaction, or authentication API integration
-- Phase 1/2 specifications: [`docs/`](docs/)
+- Central AURUM Obsidian theme, responsive shell, Riverpod, and GoRouter
+- Provider-neutral market data with explicit remote/mock configuration
+- Pure-Dart SMA, EMA, RSI, MACD, volume, volatility, and price-structure analysis
+- Documented multi-factor analytical strength and explainable signal lifecycle
+- Structured local interpretation plus a backend-only remote AI abstraction
+- No trade execution, custody, transaction, provider AI key, or guaranteed-outcome claim
+- Phase specifications, provider decision, and validation notes: [`docs/`](docs/)
 
 > The repository has a source-level Flutter/Android project. This remote workspace does not contain a functioning Flutter/Dart/Android toolchain or a USB-connected Android phone. See [`docs/PHASE_3_ENVIRONMENT_STATUS.md`](docs/PHASE_3_ENVIRONMENT_STATUS.md) for the exact verification status.
 

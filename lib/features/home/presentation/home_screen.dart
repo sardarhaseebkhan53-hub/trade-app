@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/aurum_colors.dart';
-import '../../../app/theme/aurum_radius.dart';
+import '../../analysis/domain/analysis_models.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../core/utils/formatters.dart';
@@ -22,7 +22,7 @@ class HomeScreen extends ConsumerWidget {
     final profile = ref.watch(authControllerProvider).valueOrNull;
     final overview = ref.watch(marketOverviewProvider);
     final featured = ref.watch(featuredAssetsProvider);
-    final insight = ref.watch(marketInsightProvider);
+    final insight = ref.watch(homeAiAnalysisProvider);
     final signals = ref.watch(signalsProvider);
     final watched = ref.watch(watchlistProvider).valueOrNull ?? <String>{};
 
@@ -33,7 +33,7 @@ class HomeScreen extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(marketOverviewProvider);
             ref.invalidate(featuredAssetsProvider);
-            ref.invalidate(marketInsightProvider);
+            ref.invalidate(homeAiAnalysisProvider);
             ref.invalidate(signalsProvider);
             await ref.read(marketOverviewProvider.future);
             await ref.read(featuredAssetsProvider.future);
@@ -82,32 +82,32 @@ class HomeScreen extends ConsumerWidget {
                       error: (_, __) => AurumErrorState(title: 'Unable to update market data', message: 'Featured assets are temporarily unavailable.', onRetry: () => ref.invalidate(featuredAssetsProvider)),
                     ),
                     const SizedBox(height: AurumSpacing.xxl),
-                    const SectionHeader(title: 'AI market insight', subtitle: 'Evidence-led analytical context'),
+                    const SectionHeader(title: 'AURUM intelligence', subtitle: 'Structured interpretation of current technical analysis'),
                     const SizedBox(height: AurumSpacing.sm),
                     insight.when(
-                      data: (MarketInsight data) => AIInsightCard(insight: data, onTap: () => context.go('/ai-analysis')),
+                      data: (AiMarketAnalysis data) => AIInsightCard(analysis: data, onTap: () => context.go('/ai-analysis')),
                       loading: () => const LoadingSkeleton(height: 170),
-                      error: (_, __) => AurumErrorState(title: 'AI analysis unavailable', message: 'Market data remains available. Please try again shortly.', onRetry: () => ref.invalidate(marketInsightProvider)),
+                      error: (_, __) => AurumErrorState(title: 'Analysis unavailable', message: 'Market data remains available. Please try again shortly.', onRetry: () => ref.invalidate(homeAiAnalysisProvider)),
                     ),
                     const SizedBox(height: AurumSpacing.xxl),
-                    SectionHeader(title: 'Current signals', subtitle: 'Demo signal preview • Phase 5 replaces this feed', actionLabel: 'View all', onAction: () => context.go('/signals')),
+                    SectionHeader(title: 'Current signals', subtitle: 'Explainable multi-factor technical context', actionLabel: 'View all', onAction: () => context.go('/signals')),
                     const SizedBox(height: AurumSpacing.sm),
                     signals.when(
-                      data: (List<AnalysisSignal> data) => Column(
-                        children: data.take(2).map((AnalysisSignal signal) => Padding(
+                      data: (List<SignalRecord> data) => Column(
+                        children: data.take(2).map((SignalRecord signal) => Padding(
                           padding: const EdgeInsets.only(bottom: AurumSpacing.sm),
                           child: SignalCard(signal: signal, onTap: () => context.push('/asset/${signal.assetId}')),
                         )).toList(),
                       ),
                       loading: () => const _StackedSkeletons(count: 2, height: 150),
-                      error: (_, __) => AurumErrorState(title: 'Signals are unavailable', message: 'Refresh to try loading the latest demo signals.', onRetry: () => ref.invalidate(signalsProvider)),
+                      error: (_, __) => AurumErrorState(title: 'Signals are unavailable', message: 'Refresh to try generating the latest technical context.', onRetry: () => ref.invalidate(signalsProvider)),
                     ),
                     const SizedBox(height: AurumSpacing.xxl),
                     const SectionHeader(title: 'Quick actions'),
                     const SizedBox(height: AurumSpacing.sm),
                     _QuickActions(),
                     const SizedBox(height: AurumSpacing.md),
-                    const Text('Market prices are sourced from the configured provider. Analysis preview is demo-only • Not financial advice', style: AurumTypography.caption),
+                    const Text('Market prices use the configured provider. Analysis uses documented technical rules and uncertainty-aware interpretation • Not financial advice', style: AurumTypography.caption),
                   ]),
                 ),
               ),

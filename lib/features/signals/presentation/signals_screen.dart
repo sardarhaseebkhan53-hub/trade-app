@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/aurum_colors.dart';
+import '../../analysis/domain/analysis_models.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
-import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 import '../../../shared/widgets/financial_components.dart';
@@ -46,17 +46,19 @@ class _SignalsScreenState extends ConsumerState<SignalsScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AurumSpacing.lg),
-            child: Row(children: <Widget>[Text(_history ? 'HISTORICAL CONTEXT' : 'CURRENT ANALYTICAL CONTEXT', style: AurumTypography.caption.copyWith(color: AurumColors.goldSoft, letterSpacing: 1.1)), const Spacer(), const Text('Demo signals', style: AurumTypography.caption)]),
+            child: Row(children: <Widget>[Text(_history ? 'HISTORICAL RECORDS' : 'CURRENT ANALYTICAL CONTEXT', style: AurumTypography.caption.copyWith(color: AurumColors.goldSoft, letterSpacing: 1.1)), const Spacer(), const Text('Rule-based', style: AurumTypography.caption)]),
           ),
           const SizedBox(height: AurumSpacing.sm),
           Expanded(child: signals.when(
-            data: (List<AnalysisSignal> data) {
-              final shown = _history ? data.where((AnalysisSignal item) => item.status != SignalStatus.active).toList() : data.where((AnalysisSignal item) => item.status != SignalStatus.archived).toList();
-              if (shown.isEmpty) return const AurumEmptyState(title: 'No active signals right now', message: 'New analytical signals will appear here when available.', icon: Icons.insights_outlined);
-              return RefreshIndicator(color: AurumColors.gold, onRefresh: () async => ref.invalidate(signalsProvider), child: ListView.separated(padding: const EdgeInsets.fromLTRB(AurumSpacing.lg, AurumSpacing.xs, AurumSpacing.lg, AurumSpacing.xxl), itemCount: shown.length, separatorBuilder: (_, __) => const SizedBox(height: AurumSpacing.sm), itemBuilder: (BuildContext context, int index) => SignalCard(signal: shown[index], onTap: () => context.push('/asset/${shown[index].assetId}'))));
+            data: (List<SignalRecord> data) {
+              final shown = _history
+                  ? data.where((SignalRecord item) => item.effectiveStatus == SignalLifecycle.invalidated || item.effectiveStatus == SignalLifecycle.expired).toList()
+                  : data.where((SignalRecord item) => item.effectiveStatus == SignalLifecycle.active || item.effectiveStatus == SignalLifecycle.updated).toList();
+              if (shown.isEmpty) return const AurumEmptyState(title: 'No active signals right now', message: 'New multi-factor analysis records will appear when sufficient market data is available.', icon: Icons.insights_outlined);
+              return RefreshIndicator(color: AurumColors.gold, onRefresh: () async { ref.invalidate(signalsProvider); await ref.read(signalsProvider.future); }, child: ListView.separated(padding: const EdgeInsets.fromLTRB(AurumSpacing.lg, AurumSpacing.xs, AurumSpacing.lg, AurumSpacing.xxl), itemCount: shown.length, separatorBuilder: (_, __) => const SizedBox(height: AurumSpacing.sm), itemBuilder: (BuildContext context, int index) => SignalCard(signal: shown[index], onTap: () => context.push('/asset/${shown[index].assetId}'))));
             },
             loading: () => const LoadingList(count: 3),
-            error: (_, __) => AurumErrorState(title: 'Signals are unavailable', message: 'Refresh to try loading the demo signal feed.', onRetry: () => ref.invalidate(signalsProvider)),
+            error: (_, __) => AurumErrorState(title: 'Signals are unavailable', message: 'Refresh to regenerate the latest technical context.', onRetry: () => ref.invalidate(signalsProvider)),
           )),
         ]),
       ),
@@ -64,6 +66,6 @@ class _SignalsScreenState extends ConsumerState<SignalsScreen> {
   }
 
   void _showFilters(BuildContext context) {
-    showModalBottomSheet<void>(context: context, builder: (BuildContext context) => Padding(padding: const EdgeInsets.all(AurumSpacing.lg), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[const Text('Signal filters', style: AurumTypography.h2), const SizedBox(height: AurumSpacing.lg), Wrap(spacing: AurumSpacing.xs, runSpacing: AurumSpacing.xs, children: <Widget>[AurumFilterChip(label: 'All assets', selected: true, onSelected: (_) {}), AurumFilterChip(label: 'Bullish', selected: false, onSelected: (_) {}), AurumFilterChip(label: 'Moderate risk', selected: false, onSelected: (_) {})]), const SizedBox(height: AurumSpacing.lg), const Text('Filters are presentation-only in the Phase 3 demo.', style: AurumTypography.caption)])));
+    showModalBottomSheet<void>(context: context, builder: (BuildContext context) => Padding(padding: const EdgeInsets.all(AurumSpacing.lg), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[const Text('Signal filters', style: AurumTypography.h2), const SizedBox(height: AurumSpacing.lg), Wrap(spacing: AurumSpacing.xs, runSpacing: AurumSpacing.xs, children: <Widget>[AurumFilterChip(label: 'All assets', selected: true, onSelected: (_) {}), AurumFilterChip(label: 'Bullish', selected: false, onSelected: (_) {}), AurumFilterChip(label: 'Moderate risk', selected: false, onSelected: (_) {})]), const SizedBox(height: AurumSpacing.lg), const Text('Filtering controls are presentation-only while signal preferences move to Phase 6.', style: AurumTypography.caption)])));
   }
 }

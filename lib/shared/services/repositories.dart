@@ -8,19 +8,8 @@ abstract interface class MarketRepository {
   Future<MarketSnapshot<MarketAsset>> getAsset(String assetId);
   Future<MarketSnapshot<MarketOverview>> getOverview();
   Future<MarketSnapshot<AssetStatistics>> getStatistics(String assetId);
-  Future<List<TechnicalIndicator>> getIndicators(String assetId);
   Future<MarketSnapshot<ChartSeries>> getChart(String assetId, String timeframe);
   Future<MarketSnapshot<List<OHLCData>>> getOhlc(String assetId, String timeframe);
-}
-
-abstract interface class SignalRepository {
-  Future<List<AnalysisSignal>> getSignals({bool includeHistory = false});
-  Future<List<AnalysisSignal>> getForAsset(String assetId);
-}
-
-abstract interface class AiAnalysisRepository {
-  Future<MarketInsight> getMarketInsight();
-  Future<AiAnalysis> getAnalysis(String assetId);
 }
 
 abstract interface class WatchlistRepository {

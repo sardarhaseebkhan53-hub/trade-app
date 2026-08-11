@@ -7,6 +7,8 @@ import '../../../app/theme/aurum_radius.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../analysis/domain/analysis_models.dart';
+import '../../analysis/domain/analysis_request.dart';
 import '../../markets/data/chart_data_adapter.dart';
 import '../../../shared/models/market_data_models.dart';
 import '../../../shared/models/market_models.dart';
@@ -58,10 +60,12 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chart = ref.watch(chartProvider(ChartRequest(asset.id, timeframe)));
-    final indicators = ref.watch(indicatorsProvider(asset.id));
+    final request = AnalysisRequest(assetId: asset.id, timeframe: timeframe);
+    final technical = ref.watch(technicalAnalysisProvider(request));
+    final multiTimeframe = ref.watch(multiTimeframeAnalysisProvider(asset.id));
     final statistics = ref.watch(statisticsProvider(asset.id));
-    final analysis = ref.watch(aiAnalysisProvider(asset.id));
-    final signals = ref.watch(assetSignalsProvider(asset.id));
+    final analysis = ref.watch(aiAnalysisProvider(request));
+    final signals = ref.watch(assetSignalRecordsProvider(request));
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -81,18 +85,30 @@ class _Body extends ConsumerWidget {
             error: (_, __) => AurumErrorState(title: 'Chart unavailable', message: 'Try a different range or refresh.', onRetry: () => ref.invalidate(chartProvider(ChartRequest(asset.id, timeframe)))),
           ),
           const SizedBox(height: AurumSpacing.xxl),
-          const SectionHeader(title: 'Technical context', subtitle: 'Phase 5 preview — not live indicator output'),
+          const SectionHeader(title: 'Technical context', subtitle: 'Calculated from the selected provider-derived chart series'),
           const SizedBox(height: AurumSpacing.sm),
-          indicators.when(
-            data: (List<TechnicalIndicator> data) => Wrap(spacing: AurumSpacing.xs, runSpacing: AurumSpacing.xs, children: data.map((TechnicalIndicator indicator) => IndicatorChip(indicator: indicator)).toList()),
+          technical.when(
+            data: (MarketAnalysis data) => data.isSufficient
+                ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+                    Wrap(spacing: AurumSpacing.xs, runSpacing: AurumSpacing.xs, children: data.toIndicatorChips().map((TechnicalIndicator indicator) => IndicatorChip(indicator: indicator)).toList()),
+                    const SizedBox(height: AurumSpacing.sm),
+                    _TechnicalSummary(analysis: data),
+                  ])
+                : _UnavailableCard(message: data.insufficiencyReason ?? 'Insufficient market data for reliable analysis.'),
             loading: () => const LoadingSkeleton(height: 42),
-            error: (_, __) => const Text('Indicators are temporarily unavailable.', style: AurumTypography.body),
+            error: (_, __) => const _UnavailableCard(message: 'Technical analysis is temporarily unavailable.'),
+          ),
+          const SizedBox(height: AurumSpacing.md),
+          multiTimeframe.when(
+            data: (Map<String, MarketAnalysis> values) => Wrap(spacing: AurumSpacing.xs, runSpacing: AurumSpacing.xs, children: values.entries.map((MapEntry<String, MarketAnalysis> entry) => _TimeframeBiasChip(timeframe: entry.key, bias: entry.value.bias)).toList()),
+            loading: () => const LoadingSkeleton(height: 32),
+            error: (_, __) => const SizedBox.shrink(),
           ),
           const SizedBox(height: AurumSpacing.xxl),
-          const SectionHeader(title: 'AI analysis', subtitle: 'Structured market context, not a prediction'),
+          const SectionHeader(title: 'AURUM intelligence', subtitle: 'Structured interpretation of technical evidence'),
           const SizedBox(height: AurumSpacing.sm),
           analysis.when(
-            data: (AiAnalysis data) => _AiPreview(analysis: data, onTap: () => context.push('/ai-analysis?asset=${asset.id}')),
+            data: (AiMarketAnalysis data) => _AiPreview(analysis: data, onTap: () => context.push('/ai-analysis?asset=${asset.id}')),
             loading: () => const LoadingSkeleton(height: 170),
             error: (_, __) => const _UnavailableCard(message: 'AI analysis is temporarily unavailable. Market data remains available.'),
           ),
@@ -108,7 +124,7 @@ class _Body extends ConsumerWidget {
           const SectionHeader(title: 'Related signals'),
           const SizedBox(height: AurumSpacing.sm),
           signals.when(
-            data: (List<AnalysisSignal> data) => data.isEmpty ? const _UnavailableCard(message: 'No current analytical signals for this asset.') : Column(children: data.map((AnalysisSignal signal) => Padding(padding: const EdgeInsets.only(bottom: AurumSpacing.sm), child: SignalCard(signal: signal))).toList()),
+            data: (List<SignalRecord> data) => data.isEmpty ? const _UnavailableCard(message: 'No analysis record is available for this asset yet.') : Column(children: data.map((SignalRecord signal) => Padding(padding: const EdgeInsets.only(bottom: AurumSpacing.sm), child: SignalCard(signal: signal))).toList()),
             loading: () => const LoadingSkeleton(height: 150),
             error: (_, __) => const _UnavailableCard(message: 'Signals are temporarily unavailable.'),
           ),
@@ -138,23 +154,62 @@ class _TimeframeSelector extends StatelessWidget {
   );
 }
 
+class _TechnicalSummary extends StatelessWidget {
+  const _TechnicalSummary({required this.analysis});
+  final MarketAnalysis analysis;
+
+  @override
+  Widget build(BuildContext context) => AurumCard(
+    padding: const EdgeInsets.all(AurumSpacing.sm),
+    child: Wrap(spacing: AurumSpacing.lg, runSpacing: AurumSpacing.xs, children: <Widget>[
+      _TechnicalMetric(label: 'Trend', value: trendLabel(analysis.trend)),
+      _TechnicalMetric(label: 'Volatility', value: analysis.volatility.state.name),
+      _TechnicalMetric(label: 'Potential support', value: analysis.structure.support?.toStringAsFixed(2) ?? 'Unavailable'),
+      _TechnicalMetric(label: 'Potential resistance', value: analysis.structure.resistance?.toStringAsFixed(2) ?? 'Unavailable'),
+    ]),
+  );
+}
+
+class _TechnicalMetric extends StatelessWidget {
+  const _TechnicalMetric({required this.label, required this.value});
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: <Widget>[Text(label, style: AurumTypography.caption), const SizedBox(height: AurumSpacing.xxs), Text(value, style: AurumTypography.label)]);
+}
+
 class _AiPreview extends StatelessWidget {
   const _AiPreview({required this.analysis, required this.onTap});
-  final AiAnalysis analysis;
+  final AiMarketAnalysis analysis;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => AurumCard(
     onTap: onTap,
-    borderColor: directionColor(analysis.direction).withOpacity(0.45),
+    borderColor: analyticalBiasColor(analysis.bias).withOpacity(0.45),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-      Row(children: <Widget>[const Icon(Icons.auto_awesome_outlined, color: AurumColors.gold, size: 18), const SizedBox(width: AurumSpacing.xs), Expanded(child: Text(analysis.headline, style: AurumTypography.h3)), Text('${analysis.confidence}% model confidence', style: AurumTypography.caption.copyWith(color: AurumColors.goldSoft))]),
+      Row(children: <Widget>[const Icon(Icons.auto_awesome_outlined, color: AurumColors.gold, size: 18), const SizedBox(width: AurumSpacing.xs), Expanded(child: Text(biasLabel(analysis.bias), style: AurumTypography.h3)), Text('${analysis.analyticalStrength}/100', style: AurumTypography.caption.copyWith(color: AurumColors.goldSoft))]),
       const SizedBox(height: AurumSpacing.sm),
       Text(analysis.summary, style: AurumTypography.body),
       const SizedBox(height: AurumSpacing.sm),
-      Text('Confidence reflects model uncertainty, not certainty. ${AurumFormatters.compactDate(analysis.asOf)}', style: AurumTypography.caption),
+      Text('${analysis.source} • ${AurumFormatters.compactDate(analysis.generatedAt)} • Strength is evidence, not certainty.', style: AurumTypography.caption),
     ]),
   );
+}
+
+class _TimeframeBiasChip extends StatelessWidget {
+  const _TimeframeBiasChip({required this.timeframe, required this.bias});
+  final String timeframe;
+  final AnalyticalBias bias;
+  @override
+  Widget build(BuildContext context) {
+    final color = analyticalBiasColor(bias);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AurumSpacing.sm, vertical: AurumSpacing.xs),
+      decoration: BoxDecoration(color: AurumColors.surface, borderRadius: AurumRadius.pill, border: Border.all(color: AurumColors.border)),
+      child: Text('$timeframe: ${biasLabel(bias)}', style: AurumTypography.caption.copyWith(color: color)),
+    );
+  }
 }
 
 class _StatisticsGrid extends StatelessWidget {

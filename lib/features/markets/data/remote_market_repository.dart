@@ -69,12 +69,6 @@ class RemoteMarketRepository implements MarketRepository {
       );
 
   @override
-  Future<List<TechnicalIndicator>> getIndicators(String assetId) {
-    // Technical calculation and indicator provenance are Phase 5 responsibilities.
-    throw const ServiceFailure('Technical indicators will be available in Phase 5.');
-  }
-
-  @override
   Future<MarketSnapshot<List<MarketAsset>>> getMarkets({String query = ''}) {
     final normalized = query.trim().toLowerCase();
     return _load(

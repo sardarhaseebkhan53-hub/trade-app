@@ -5,6 +5,7 @@ import '../../app/theme/aurum_radius.dart';
 import '../../app/theme/aurum_spacing.dart';
 import '../../app/theme/aurum_typography.dart';
 import '../../core/utils/formatters.dart';
+import '../../features/analysis/domain/analysis_models.dart';
 import '../models/market_models.dart';
 import 'aurum_primitives.dart';
 import 'charts.dart';
@@ -140,13 +141,13 @@ class CryptoCard extends StatelessWidget {
 }
 
 class AIInsightCard extends StatelessWidget {
-  const AIInsightCard({required this.insight, super.key, this.onTap});
-  final MarketInsight insight;
+  const AIInsightCard({required this.analysis, super.key, this.onTap});
+  final AiMarketAnalysis analysis;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final tone = directionColor(insight.direction);
+    final tone = analyticalBiasColor(analysis.bias);
     return AurumCard(
       onTap: onTap,
       color: AurumColors.surface,
@@ -156,24 +157,23 @@ class AIInsightCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(Icons.auto_awesome_outlined, color: AurumColors.gold, size: 18),
+              const Icon(Icons.auto_awesome_outlined, color: AurumColors.gold, size: 18),
               const SizedBox(width: AurumSpacing.xs),
-              Text(insight.title.toUpperCase(), style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)),
+              Text('AURUM INTELLIGENCE', style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)),
               const Spacer(),
-              _DirectionLabel(direction: insight.direction),
+              _AnalysisBiasLabel(bias: analysis.bias),
             ],
           ),
           const SizedBox(height: AurumSpacing.sm),
-          Text(insight.summary, style: AurumTypography.bodyLarge.copyWith(color: AurumColors.textPrimary)),
+          Text(analysis.summary, style: AurumTypography.bodyLarge.copyWith(color: AurumColors.textPrimary), maxLines: 3, overflow: TextOverflow.ellipsis),
           const SizedBox(height: AurumSpacing.sm),
-          Row(
-            children: <Widget>[
-              Expanded(child: Text(insight.observation, style: AurumTypography.caption)),
-              const Icon(Icons.chevron_right_rounded, color: AurumColors.goldSoft),
-            ],
-          ),
+          Row(children: <Widget>[
+            Text('Strength ${analysis.analyticalStrength}/100', style: AurumTypography.caption.copyWith(color: AurumColors.goldSoft)),
+            const Spacer(),
+            const Icon(Icons.chevron_right_rounded, color: AurumColors.goldSoft),
+          ]),
           const SizedBox(height: AurumSpacing.sm),
-          Text('Demo analysis • ${AurumFormatters.compactDate(insight.asOf)} • Not financial advice', style: AurumTypography.caption),
+          Text('${analysis.source} • ${AurumFormatters.compactDate(analysis.generatedAt)} • Not financial advice', style: AurumTypography.caption),
         ],
       ),
     );
@@ -182,12 +182,12 @@ class AIInsightCard extends StatelessWidget {
 
 class SignalCard extends StatelessWidget {
   const SignalCard({required this.signal, super.key, this.onTap});
-  final AnalysisSignal signal;
+  final SignalRecord signal;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final direction = directionColor(signal.direction);
+    final tone = analyticalBiasColor(signal.bias);
     return AurumCard(
       onTap: onTap,
       child: Column(
@@ -196,26 +196,33 @@ class SignalCard extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(child: Text(signal.pair, style: AurumTypography.h3)),
-              _DirectionLabel(direction: signal.direction),
+              _AnalysisBiasLabel(bias: signal.bias),
             ],
           ),
+          const SizedBox(height: AurumSpacing.xs),
+          Text('${signal.timeframe} • Strength ${signal.analyticalStrength}/100', style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)),
           const SizedBox(height: AurumSpacing.sm),
-          Text(signal.thesis, maxLines: 2, overflow: TextOverflow.ellipsis, style: AurumTypography.body),
+          Text(
+            signal.reasons.isEmpty ? 'Insufficient market data for reliable analysis.' : signal.reasons.first,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AurumTypography.body,
+          ),
           const SizedBox(height: AurumSpacing.sm),
           Wrap(
             spacing: AurumSpacing.xs,
             runSpacing: AurumSpacing.xs,
             children: <Widget>[
-              _SignalMeta(label: signal.strength.name, color: direction),
-              _SignalMeta(label: '${signal.riskLevel.name} risk', color: riskColor(signal.riskLevel)),
-              _SignalMeta(label: signal.status.name, color: AurumColors.textSecondary),
+              _SignalMeta(label: '${signal.risk.name} risk', color: analyticalRiskColor(signal.risk)),
+              _SignalMeta(label: signal.effectiveStatus.name, color: tone),
+              if (signal.priceSnapshot != null) _SignalMeta(label: AurumFormatters.price(signal.priceSnapshot!), color: AurumColors.textSecondary),
             ],
           ),
           const SizedBox(height: AurumSpacing.sm),
           Row(
             children: <Widget>[
-              Expanded(child: Text('Issued ${AurumFormatters.compactDate(signal.issuedAt)}', style: AurumTypography.caption)),
-              Text('Demo signal', style: AurumTypography.caption.copyWith(color: AurumColors.goldSoft)),
+              Expanded(child: Text('Generated ${AurumFormatters.compactDate(signal.createdAt)}', style: AurumTypography.caption)),
+              Text('Data ${AurumFormatters.compactDate(signal.dataAsOf)}', style: AurumTypography.caption),
             ],
           ),
         ],
@@ -290,25 +297,6 @@ class AssetHeader extends StatelessWidget {
   }
 }
 
-class _DirectionLabel extends StatelessWidget {
-  const _DirectionLabel({required this.direction});
-  final MarketDirection direction;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = directionColor(direction);
-    final label = switch (direction) {
-      MarketDirection.bullish => 'Bullish context',
-      MarketDirection.neutral => 'Watch',
-      MarketDirection.bearish => 'Bearish context',
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: AurumRadius.pill),
-      child: Text(label, style: AurumTypography.caption.copyWith(color: color, fontWeight: FontWeight.w700)),
-    );
-  }
-}
 
 class _SignalMeta extends StatelessWidget {
   const _SignalMeta({required this.label, required this.color});
@@ -334,8 +322,34 @@ Color directionColor(MarketDirection direction) => switch (direction) {
       MarketDirection.bearish => AurumColors.negative,
     };
 
-Color riskColor(RiskLevel level) => switch (level) {
-      RiskLevel.low => AurumColors.positive,
-      RiskLevel.moderate => AurumColors.warning,
-      RiskLevel.elevated => AurumColors.negative,
+Color analyticalBiasColor(AnalyticalBias bias) => switch (bias) {
+      AnalyticalBias.strongBullish => AurumColors.positive,
+      AnalyticalBias.bullish => AurumColors.positive,
+      AnalyticalBias.strongBearish => AurumColors.negative,
+      AnalyticalBias.bearish => AurumColors.negative,
+      AnalyticalBias.insufficient => AurumColors.textTertiary,
+      AnalyticalBias.neutral => AurumColors.warning,
     };
+
+Color analyticalRiskColor(AnalyticalRisk risk) => switch (risk) {
+      AnalyticalRisk.low => AurumColors.positive,
+      AnalyticalRisk.moderate => AurumColors.warning,
+      AnalyticalRisk.elevated => AurumColors.negative,
+      AnalyticalRisk.high => AurumColors.negative,
+      AnalyticalRisk.unknown => AurumColors.textTertiary,
+    };
+
+class _AnalysisBiasLabel extends StatelessWidget {
+  const _AnalysisBiasLabel({required this.bias});
+  final AnalyticalBias bias;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = analyticalBiasColor(bias);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: AurumRadius.pill),
+      child: Text(biasLabel(bias), style: AurumTypography.caption.copyWith(color: color, fontWeight: FontWeight.w700)),
+    );
+  }
+}
