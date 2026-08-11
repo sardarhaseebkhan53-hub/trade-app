@@ -174,7 +174,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: AurumSpacing.xxl),
                 _field(label: 'Name', controller: _nameController, hint: 'Your name', validator: (String? value) => value == null || value.trim().isEmpty ? 'Enter your name.' : null),
                 _field(label: 'Email', controller: _emailController, hint: 'you@example.com', keyboardType: TextInputType.emailAddress, validator: _validateEmail),
-                _field(label: 'Password', controller: _passwordController, hint: 'At least 8 characters', obscure: true, validator: (String? value) => value == null || value.length < 8 ? 'Use at least 8 characters.' : null),
+                _field(label: 'Password', controller: _passwordController, hint: '12+ characters, upper/lowercase and number', obscure: true, validator: _validateRegistrationPassword),
                 _field(label: 'Confirm password', controller: _confirmController, hint: 'Repeat password', obscure: true, validator: (String? value) => value != _passwordController.text ? 'Passwords do not match.' : null),
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,

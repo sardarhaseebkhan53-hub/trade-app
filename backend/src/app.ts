@@ -70,7 +70,14 @@ export async function buildApp(options: { env?: Env; db?: PrismaClient } = {}) {
   const intelligenceController = new IntelligenceController(new IntelligenceHistoryService(intelligence));
   const requireAuth = authenticate(sessions);
 
-  app.get('/health', async (_request, reply) => ok(reply, { status: 'ok' }));
+  app.get('/health', async (_request, reply) => {
+    try {
+      await db.$queryRaw`SELECT 1`;
+      return ok(reply, { status: 'ok' });
+    } catch {
+      return reply.code(503).send({ success: false, error: { code: 'SERVICE_UNAVAILABLE', message: 'Service unavailable.' } });
+    }
+  });
 
   app.post('/auth/register', { config: { rateLimit: { max: 8, timeWindow: '1 minute' } } }, async (request, reply) => ok(reply, await authController.register(request), 201));
   app.post('/auth/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => ok(reply, await authController.login(request)));

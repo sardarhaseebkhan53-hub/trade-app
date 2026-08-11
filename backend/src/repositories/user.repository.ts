@@ -44,6 +44,13 @@ export class UserRepository {
   async anonymizeAndDelete(userId: string): Promise<void> {
     await this.db.$transaction([
       this.db.userSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+      this.db.passwordResetToken.deleteMany({ where: { userId } }),
+      this.db.deviceRegistration.deleteMany({ where: { userId } }),
+      this.db.priceAlert.deleteMany({ where: { userId } }),
+      this.db.notification.deleteMany({ where: { userId } }),
+      this.db.aIAnalysis.deleteMany({ where: { userId } }),
+      this.db.signalHistory.deleteMany({ where: { userId } }),
+      this.db.watchlist.deleteMany({ where: { userId } }),
       this.db.user.update({
         where: { id: userId },
         data: {
@@ -51,6 +58,7 @@ export class UserRepository {
           email: `deleted+${userId}@invalid.aurum`,
           name: 'Deleted user',
           passwordHash: 'revoked',
+          lastLoginAt: null,
         },
       }),
     ]);

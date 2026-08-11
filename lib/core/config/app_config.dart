@@ -15,6 +15,7 @@ class AppConfig {
   });
 
   factory AppConfig.fromEnvironment() {
+    const environment = String.fromEnvironment('AURUM_ENV', defaultValue: 'development');
     const marketMode = String.fromEnvironment(
       'AURUM_MARKET_DATA_MODE',
       defaultValue: 'remote',
@@ -23,12 +24,26 @@ class AppConfig {
       'AURUM_BACKEND_MODE',
       defaultValue: 'mock',
     );
+    const apiBaseUrl = String.fromEnvironment(
+      'AURUM_API_BASE_URL',
+      defaultValue: 'https://api.example.invalid',
+    );
+    const marketApiKey = String.fromEnvironment('AURUM_MARKET_API_KEY');
+    if (environment == 'production') {
+      if (backendMode != 'remote' || marketMode != 'remote') {
+        throw ArgumentError('Production AURUM builds require remote backend and market-data modes.');
+      }
+      if (marketApiKey.isNotEmpty) {
+        throw ArgumentError('Production AURUM builds must not contain a market-provider API key.');
+      }
+      final backendUri = Uri.parse(apiBaseUrl);
+      if (backendUri.scheme != 'https' || backendUri.host.isEmpty) {
+        throw ArgumentError('Production AURUM builds require an HTTPS backend URL.');
+      }
+    }
     return AppConfig(
-      environment: String.fromEnvironment('AURUM_ENV', defaultValue: 'development'),
-      apiBaseUrl: String.fromEnvironment(
-        'AURUM_API_BASE_URL',
-        defaultValue: 'https://api.example.invalid',
-      ),
+      environment: environment,
+      apiBaseUrl: apiBaseUrl,
       enableTelemetry: bool.fromEnvironment(
         'AURUM_ENABLE_TELEMETRY',
         defaultValue: false,
@@ -43,7 +58,7 @@ class AppConfig {
         'AURUM_MARKET_API_BASE_URL',
         defaultValue: 'https://api.coingecko.com/api/v3',
       ),
-      marketApiKey: String.fromEnvironment('AURUM_MARKET_API_KEY'),
+      marketApiKey: marketApiKey,
       enableNetworkLogging: bool.fromEnvironment(
         'AURUM_ENABLE_NETWORK_LOGGING',
         defaultValue: false,
