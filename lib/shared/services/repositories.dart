@@ -1,5 +1,6 @@
 import '../models/market_data_models.dart';
 import '../models/market_models.dart';
+import '../models/user_data_models.dart';
 
 abstract interface class MarketRepository {
   Future<MarketSnapshot<List<MarketAsset>>> getMarkets({String query = ''});
@@ -23,12 +24,31 @@ abstract interface class NotificationRepository {
 }
 
 abstract interface class AuthRepository {
-  Future<AurumProfile> signIn({required String email, required String password});
-  Future<AurumProfile> register({
+  Future<UserSession> signIn({required String email, required String password});
+  Future<UserSession> register({
     required String name,
     required String email,
     required String password,
   });
+  Future<AurumProfile> me();
+  Future<UserSession> refresh(String refreshToken);
   Future<void> sendPasswordReset(String email);
+  Future<void> resetPassword({required String token, required String password});
   Future<void> signOut();
+}
+
+abstract interface class UserRepository {
+  Future<AurumProfile> updateProfile({required String name});
+  Future<UserPreferences> getPreferences();
+  Future<UserPreferences> updatePreferences(UserPreferences preferences);
+  Future<UserNotificationPreferences> getNotificationPreferences();
+  Future<UserNotificationPreferences> updateNotificationPreferences(UserNotificationPreferences preferences);
+  Future<void> deleteAccount({required String password});
+}
+
+abstract interface class AlertRepository {
+  Future<List<PriceAlert>> getAlerts();
+  Future<PriceAlert> createAlert({required String assetId, required AlertCondition condition, required double targetPrice});
+  Future<void> updateAlert({required String id, AlertCondition? condition, double? targetPrice, bool? active});
+  Future<void> deleteAlert(String id);
 }

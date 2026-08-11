@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
+import '../../../shared/models/user_data_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 
@@ -31,6 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
+    final isAuthenticating = auth.isLoading || auth.valueOrNull?.status == AuthStatus.authenticating;
     return Scaffold(
       appBar: AppBar(backgroundColor: AurumColors.canvas, surfaceTintColor: Colors.transparent),
       body: SafeArea(
@@ -89,8 +91,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ],
                 AurumButton(
                   label: 'Sign in',
-                  isLoading: auth.isLoading,
-                  onPressed: auth.isLoading ? null : _submit,
+                  isLoading: isAuthenticating,
+                  onPressed: isAuthenticating ? null : _submit,
                 ),
                 const SizedBox(height: AurumSpacing.sm),
                 AurumButton(
@@ -121,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-    if (mounted && ref.read(authControllerProvider).hasValue) context.go('/home');
+    if (mounted && ref.read(authControllerProvider).valueOrNull?.isAuthenticated == true) context.go('/home');
   }
 }
 
@@ -152,6 +154,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
+    final isAuthenticating = auth.isLoading || auth.valueOrNull?.status == AuthStatus.authenticating;
     return Scaffold(
       appBar: AppBar(backgroundColor: AurumColors.canvas, surfaceTintColor: Colors.transparent),
       body: SafeArea(
@@ -185,7 +188,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Text('Unable to create an account. Please try again.', style: AurumTypography.body.copyWith(color: AurumColors.negative)),
                   const SizedBox(height: AurumSpacing.sm),
                 ],
-                AurumButton(label: 'Create account', isLoading: auth.isLoading, onPressed: auth.isLoading ? null : _submit),
+                AurumButton(label: 'Create account', isLoading: isAuthenticating, onPressed: isAuthenticating ? null : _submit),
                 const SizedBox(height: AurumSpacing.lg),
                 Center(child: TextButton(onPressed: () => context.go('/login'), child: Text('Already have an account? Sign in', style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)))),
               ],
@@ -214,7 +217,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
     if (!_formKey.currentState!.validate()) return;
     await ref.read(authControllerProvider.notifier).register(name: _nameController.text.trim(), email: _emailController.text.trim(), password: _passwordController.text);
-    if (mounted && ref.read(authControllerProvider).hasValue) context.go('/home');
+    if (mounted && ref.read(authControllerProvider).valueOrNull?.isAuthenticated == true) context.go('/home');
   }
 }
 

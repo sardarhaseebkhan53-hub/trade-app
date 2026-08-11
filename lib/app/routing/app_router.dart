@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/ai_analysis/presentation/ai_analysis_screen.dart';
+import '../../features/alerts/presentation/alerts_screen.dart';
 import '../../features/asset_details/presentation/asset_detail_screen.dart';
 import '../../features/authentication/presentation/auth_screens.dart';
 import '../../features/home/presentation/home_screen.dart';
@@ -46,6 +47,11 @@ class AppRouter {
             parentNavigatorKey: _rootNavigatorKey,
             path: AurumRoutes.watchlist,
             pageBuilder: (_, GoRouterState state) => _transitionPage(state, const WatchlistScreen()),
+          ),
+          GoRoute(
+            parentNavigatorKey: _rootNavigatorKey,
+            path: AurumRoutes.alerts,
+            pageBuilder: (_, GoRouterState state) => _transitionPage(state, const AlertsScreen()),
           ),
           GoRoute(
             parentNavigatorKey: _rootNavigatorKey,

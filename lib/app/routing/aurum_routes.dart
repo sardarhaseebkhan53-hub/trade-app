@@ -12,4 +12,5 @@ abstract final class AurumRoutes {
   static const asset = '/asset';
   static const watchlist = '/watchlist';
   static const notifications = '/notifications';
+  static const alerts = '/alerts';
 }

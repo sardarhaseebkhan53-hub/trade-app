@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum AlertCondition {
+  ABOVE
+  BELOW
+}
+
+enum AlertStatus {
+  ACTIVE
+  TRIGGERED
+  PAUSED
+  CANCELLED
+}
+
+enum NotificationType {
+  SIGNAL_CREATED
+  SIGNAL_INVALIDATED
+  PRICE_ALERT
+  MARKET_MOVEMENT
+  AI_ANALYSIS_UPDATED
+  SYSTEM
+}
+
+enum SignalStatus {
+  ACTIVE
+  UPDATED
+  INVALIDATED
+  EXPIRED
+}
+
+model User {
+  id                      String                  @id @default(uuid())
+  name                    String                  @db.VarChar(80)
+  email                   String                  @unique @db.VarChar(254)
+  passwordHash            String                  @db.VarChar(255)
+  status                  UserStatus              @default(ACTIVE)
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  lastLoginAt             DateTime?
+  sessions                UserSession[]
+  passwordResetTokens     PasswordResetToken[]
+  watchlist               Watchlist?
+  preferences             UserPreference?
+  notificationPreferences NotificationPreference?
+  alerts                  PriceAlert[]
+  notifications           Notification[]
+  devices                 DeviceRegistration[]
+  aiAnalyses              AIAnalysis[]
+  signalHistory           SignalHistory[]
+
+  @@index([status])
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String
+  accessTokenHash  String   @unique @db.Char(64)
+  refreshTokenHash String   @unique @db.Char(64)
+  accessExpiresAt  DateTime
+  refreshExpiresAt DateTime
+  createdAt        DateTime @default(now())
+  lastUsedAt       DateTime @default(now())
+  revokedAt        DateTime?
+  deviceId         String?  @db.VarChar(128)
+  userAgent        String?  @db.VarChar(255)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([accessExpiresAt])
+  @@index([refreshExpiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique @db.Char(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Watchlist {
+  id        String          @id @default(uuid())
+  userId    String          @unique
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     WatchlistItem[]
+}
+
+model WatchlistItem {
+  id          String    @id @default(uuid())
+  watchlistId String
+  assetId     String    @db.VarChar(128)
+  createdAt   DateTime  @default(now())
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  @@unique([watchlistId, assetId])
+  @@index([watchlistId])
+  @@index([assetId])
+}
+
+model UserPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  quoteCurrency    String   @default("USD") @db.VarChar(8)
+  defaultTimeframe String   @default("1D") @db.VarChar(8)
+  theme            String   @default("system") @db.VarChar(16)
+  marketSettings   Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationPreference {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  signalEnabled       Boolean  @default(true)
+  priceAlertEnabled   Boolean  @default(true)
+  marketMovementEnabled Boolean @default(false)
+  aiAnalysisEnabled   Boolean  @default(false)
+  systemEnabled       Boolean  @default(true)
+  pushEnabled         Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PriceAlert {
+  id          String         @id @default(uuid())
+  userId      String
+  assetId     String         @db.VarChar(128)
+  condition   AlertCondition
+  targetPrice Decimal        @db.Decimal(30, 12)
+  status      AlertStatus    @default(ACTIVE)
+  triggeredAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([assetId, status])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String           @db.VarChar(140)
+  message   String           @db.VarChar(1000)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+  readAt    DateTime?
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model DeviceRegistration {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique @db.Char(64)
+  platform  String   @db.VarChar(24)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Signal {
+  id                   String       @id @default(uuid())
+  assetId              String       @db.VarChar(128)
+  timeframe            String       @db.VarChar(8)
+  bias                 String       @db.VarChar(32)
+  analyticalStrength   Int
+  supportingFactors    Json
+  conflictingFactors   Json
+  riskFactors          Json
+  invalidationConditions Json
+  status               SignalStatus @default(ACTIVE)
+  analysisVersion      String       @db.VarChar(64)
+  marketDataTimestamp  DateTime
+  createdAt            DateTime     @default(now())
+  expiresAt            DateTime
+  history              SignalHistory[]
+
+  @@index([assetId, timeframe, createdAt])
+  @@index([status, expiresAt])
+}
+
+model SignalHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  signalId  String
+  status    SignalStatus
+  snapshot  Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signal    Signal   @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, signalId, status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model AIAnalysis {
+  id                  String   @id @default(uuid())
+  userId              String
+  assetId             String   @db.VarChar(128)
+  timeframe           String   @db.VarChar(8)
+  structuredAnalysis  Json
+  analysisVersion     String   @db.VarChar(64)
+  marketDataTimestamp DateTime
+  createdAt           DateTime @default(now())
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([assetId, timeframe, createdAt])
+}

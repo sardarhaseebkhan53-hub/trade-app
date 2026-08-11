@@ -1,10 +1,12 @@
 enum MarketDataMode { remote, mock }
+enum BackendMode { remote, mock }
 
 class AppConfig {
   const AppConfig({
     required this.environment,
     required this.apiBaseUrl,
     required this.enableTelemetry,
+    required this.backendMode,
     required this.marketDataMode,
     required this.marketProvider,
     required this.marketApiBaseUrl,
@@ -13,9 +15,13 @@ class AppConfig {
   });
 
   factory AppConfig.fromEnvironment() {
-    const mode = String.fromEnvironment(
+    const marketMode = String.fromEnvironment(
       'AURUM_MARKET_DATA_MODE',
       defaultValue: 'remote',
+    );
+    const backendMode = String.fromEnvironment(
+      'AURUM_BACKEND_MODE',
+      defaultValue: 'mock',
     );
     return AppConfig(
       environment: String.fromEnvironment('AURUM_ENV', defaultValue: 'development'),
@@ -27,7 +33,8 @@ class AppConfig {
         'AURUM_ENABLE_TELEMETRY',
         defaultValue: false,
       ),
-      marketDataMode: mode == 'mock' ? MarketDataMode.mock : MarketDataMode.remote,
+      backendMode: backendMode == 'remote' ? BackendMode.remote : BackendMode.mock,
+      marketDataMode: marketMode == 'mock' ? MarketDataMode.mock : MarketDataMode.remote,
       marketProvider: String.fromEnvironment(
         'AURUM_MARKET_PROVIDER',
         defaultValue: 'coingecko',
@@ -47,6 +54,7 @@ class AppConfig {
   final String environment;
   final String apiBaseUrl;
   final bool enableTelemetry;
+  final BackendMode backendMode;
   final MarketDataMode marketDataMode;
   final String marketProvider;
   final String marketApiBaseUrl;

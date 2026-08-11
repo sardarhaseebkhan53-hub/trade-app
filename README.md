@@ -63,8 +63,12 @@ flutter run \
 Use explicit mock mode for offline UI work:
 
 ```bash
-flutter run --dart-define=AURUM_MARKET_DATA_MODE=mock
+flutter run \
+  --dart-define=AURUM_BACKEND_MODE=mock \
+  --dart-define=AURUM_MARKET_DATA_MODE=mock
 ```
+
+For the Phase 6 backend setup and physical-phone-safe API URL configuration, see [`backend/README.md`](backend/README.md) and [`docs/PHASE_6_IMPLEMENTATION.md`](docs/PHASE_6_IMPLEMENTATION.md).
 
 Never add market-provider, AI-provider, database, signing, push, or privileged API credentials to Dart source, assets, defines, or Git. A `--dart-define` key is suitable only for local development; a production mobile app must use an AURUM backend proxy for private provider credentials.
 

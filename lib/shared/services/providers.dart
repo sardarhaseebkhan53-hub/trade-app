@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/errors/app_failure.dart';
+import '../../core/errors/backend_api_exception.dart';
+import '../../core/networking/aurum_backend_client.dart';
 import '../../core/networking/market_api_client.dart';
+import '../../core/storage/secure_session_store.dart';
 import '../../features/analysis/data/analysis_repository.dart';
 import '../../features/analysis/domain/analysis_models.dart';
 import '../../features/analysis/domain/analysis_request.dart';
@@ -13,7 +16,9 @@ import '../../features/markets/data/coin_gecko_market_service.dart';
 import '../../features/markets/data/remote_market_repository.dart';
 import '../models/market_data_models.dart';
 import '../models/market_models.dart';
+import '../models/user_data_models.dart';
 import 'mock_repositories.dart';
+import 'remote_user_repositories.dart';
 import 'repositories.dart';
 
 final appConfigProvider = Provider<AppConfig>((Ref ref) => AppConfig.fromEnvironment());
@@ -32,9 +37,61 @@ final marketRepositoryProvider = Provider<MarketRepository>((Ref ref) {
   );
 });
 
-final watchlistRepositoryProvider = Provider<WatchlistRepository>((Ref ref) => MockWatchlistRepository());
-final notificationRepositoryProvider = Provider<NotificationRepository>((Ref ref) => MockNotificationRepository());
-final authRepositoryProvider = Provider<AuthRepository>((Ref ref) => MockAuthRepository());
+final secureSessionStoreProvider = Provider<SecureSessionStore>(
+  (Ref ref) => FlutterSecureSessionStore(),
+);
+
+class SessionExpiryController extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  Future<void> expire() {
+    state = true;
+    return Future<void>.value();
+  }
+
+  void reset() => state = false;
+}
+
+final sessionExpiryProvider = NotifierProvider<SessionExpiryController, bool>(
+  SessionExpiryController.new,
+);
+
+final aurumBackendClientProvider = Provider<AurumBackendClient>((Ref ref) {
+  final client = AurumBackendClient(
+    config: ref.watch(appConfigProvider),
+    sessionStore: ref.watch(secureSessionStoreProvider),
+    onUnauthorized: () => ref.read(sessionExpiryProvider.notifier).expire(),
+  );
+  ref.onDispose(client.dispose);
+  return client;
+});
+
+final watchlistRepositoryProvider = Provider<WatchlistRepository>((Ref ref) {
+  return ref.watch(appConfigProvider).backendMode == BackendMode.remote
+      ? RemoteWatchlistRepository(ref.watch(aurumBackendClientProvider))
+      : MockWatchlistRepository();
+});
+final notificationRepositoryProvider = Provider<NotificationRepository>((Ref ref) {
+  return ref.watch(appConfigProvider).backendMode == BackendMode.remote
+      ? RemoteNotificationRepository(ref.watch(aurumBackendClientProvider))
+      : MockNotificationRepository();
+});
+final authRepositoryProvider = Provider<AuthRepository>((Ref ref) {
+  return ref.watch(appConfigProvider).backendMode == BackendMode.remote
+      ? RemoteAuthRepository(ref.watch(aurumBackendClientProvider), ref.watch(secureSessionStoreProvider))
+      : MockAuthRepository();
+});
+final userRepositoryProvider = Provider<UserRepository>((Ref ref) {
+  return ref.watch(appConfigProvider).backendMode == BackendMode.remote
+      ? RemoteUserRepository(ref.watch(aurumBackendClientProvider))
+      : MockUserRepository();
+});
+final alertRepositoryProvider = Provider<AlertRepository>((Ref ref) {
+  return ref.watch(appConfigProvider).backendMode == BackendMode.remote
+      ? RemoteAlertRepository(ref.watch(aurumBackendClientProvider))
+      : MockAlertRepository();
+});
 
 final marketsProvider = FutureProvider.autoDispose.family<MarketSnapshot<List<MarketAsset>>, String>(
   (Ref ref, String query) => ref.read(marketRepositoryProvider).getMarkets(query: query),
@@ -159,21 +216,34 @@ final watchlistAssetsProvider = FutureProvider<MarketSnapshot<List<MarketAsset>>
   return ref.read(marketRepositoryProvider).getAssetsByIds(ids);
 });
 
-class AuthController extends AsyncNotifier<AurumProfile> {
+class AuthController extends AsyncNotifier<AuthState> {
   @override
-  Future<AurumProfile> build() async => const AurumProfile(
-        name: 'Guest analyst',
-        email: '',
-        isGuest: true,
-        currency: 'USD',
-        reducedMotion: false,
-      );
+  Future<AuthState> build() async {
+    ref.listen<bool>(sessionExpiryProvider, (_, bool expired) {
+      if (expired) {
+        state = const AsyncData(AuthState(status: AuthStatus.sessionExpired));
+      }
+    });
+    final tokens = await ref.read(secureSessionStoreProvider).readTokens();
+    if (tokens == null) return const AuthState.unauthenticated();
+    try {
+      final session = await ref.read(authRepositoryProvider).refresh(tokens.refreshToken);
+      return AuthState(status: AuthStatus.authenticated, profile: session.profile, expiresAt: session.accessExpiresAt);
+    } on BackendUnauthorizedException {
+      await ref.read(secureSessionStoreProvider).clear();
+      return const AuthState(status: AuthStatus.sessionExpired);
+    } catch (_) {
+      return const AuthState.unauthenticated();
+    }
+  }
 
   Future<void> signIn({required String email, required String password}) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).signIn(email: email, password: password),
-    );
+    state = const AsyncData(AuthState(status: AuthStatus.authenticating));
+    state = await AsyncValue.guard(() async {
+      final session = await ref.read(authRepositoryProvider).signIn(email: email, password: password);
+      ref.read(sessionExpiryProvider.notifier).reset();
+      return AuthState(status: AuthStatus.authenticated, profile: session.profile, expiresAt: session.accessExpiresAt);
+    });
   }
 
   Future<void> register({
@@ -181,26 +251,30 @@ class AuthController extends AsyncNotifier<AurumProfile> {
     required String email,
     required String password,
   }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref
-          .read(authRepositoryProvider)
-          .register(name: name, email: email, password: password),
-    );
+    state = const AsyncData(AuthState(status: AuthStatus.authenticating));
+    state = await AsyncValue.guard(() async {
+      final session = await ref.read(authRepositoryProvider).register(name: name, email: email, password: password);
+      ref.read(sessionExpiryProvider.notifier).reset();
+      return AuthState(status: AuthStatus.authenticated, profile: session.profile, expiresAt: session.accessExpiresAt);
+    });
   }
 
   Future<void> signOut() async {
-    await ref.read(authRepositoryProvider).signOut();
-    state = const AsyncData(AurumProfile(
-      name: 'Guest analyst',
-      email: '',
-      isGuest: true,
-      currency: 'USD',
-      reducedMotion: false,
-    ));
+    state = AsyncData(AuthState(status: AuthStatus.loggingOut, profile: state.valueOrNull?.profile));
+    try {
+      await ref.read(authRepositoryProvider).signOut();
+    } finally {
+      await ref.read(secureSessionStoreProvider).clear();
+      ref.read(sessionExpiryProvider.notifier).reset();
+      state = const AsyncData(AuthState.unauthenticated());
+    }
   }
 }
 
-final authControllerProvider = AsyncNotifierProvider<AuthController, AurumProfile>(
+final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(
   AuthController.new,
+);
+
+final alertsProvider = FutureProvider<List<PriceAlert>>(
+  (Ref ref) => ref.read(alertRepositoryProvider).getAlerts(),
 );

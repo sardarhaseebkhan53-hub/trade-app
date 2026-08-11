@@ -13,6 +13,7 @@ void main() {
         environment: 'test',
         apiBaseUrl: 'https://api.example.invalid',
         enableTelemetry: false,
+        backendMode: BackendMode.mock,
         marketDataMode: MarketDataMode.remote,
         marketProvider: 'coingecko',
         marketApiBaseUrl: 'https://market.example.test/api/v3',

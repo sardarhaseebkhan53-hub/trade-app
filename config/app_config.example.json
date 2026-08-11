@@ -2,6 +2,7 @@
   "environment": "development",
   "apiBaseUrl": "https://api.example.invalid",
   "enableTelemetry": false,
+  "backendMode": "mock",
   "marketDataMode": "remote",
   "marketProvider": "coingecko",
   "marketApiBaseUrl": "https://api.coingecko.com/api/v3",

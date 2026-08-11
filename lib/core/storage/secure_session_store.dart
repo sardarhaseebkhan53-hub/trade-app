@@ -1,9 +1,15 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Small boundary so session storage can be replaced or faked without touching UI.
+class SecureSessionTokens {
+  const SecureSessionTokens({required this.accessToken, required this.refreshToken});
+  final String accessToken;
+  final String refreshToken;
+}
+
+/// OS-backed token boundary. Widgets never read/write token values directly.
 abstract interface class SecureSessionStore {
-  Future<void> writeAccessToken(String token);
-  Future<String?> readAccessToken();
+  Future<void> writeTokens(SecureSessionTokens tokens);
+  Future<SecureSessionTokens?> readTokens();
   Future<void> clear();
 }
 
@@ -12,15 +18,28 @@ class FlutterSecureSessionStore implements SecureSessionStore {
       : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
-  static const _tokenKey = 'aurum_access_token';
+  static const _accessTokenKey = 'aurum_access_token';
+  static const _refreshTokenKey = 'aurum_refresh_token';
 
   @override
-  Future<void> clear() => _storage.delete(key: _tokenKey);
+  Future<void> clear() async {
+    await _storage.delete(key: _accessTokenKey);
+    await _storage.delete(key: _refreshTokenKey);
+  }
 
   @override
-  Future<String?> readAccessToken() => _storage.read(key: _tokenKey);
+  Future<SecureSessionTokens?> readTokens() async {
+    final values = await _storage.readAll();
+    final accessToken = values[_accessTokenKey];
+    final refreshToken = values[_refreshTokenKey];
+    if (accessToken == null || refreshToken == null) return null;
+    return SecureSessionTokens(accessToken: accessToken, refreshToken: refreshToken);
+  }
 
   @override
-  Future<void> writeAccessToken(String token) =>
-      _storage.write(key: _tokenKey, value: token);
+  Future<void> writeTokens(SecureSessionTokens tokens) {
+    return _storage.write(key: _accessTokenKey, value: tokens.accessToken).then(
+      (_) => _storage.write(key: _refreshTokenKey, value: tokens.refreshToken),
+    );
+  }
 }

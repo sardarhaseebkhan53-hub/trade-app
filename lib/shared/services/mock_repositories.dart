@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/market_data_models.dart';
 import '../models/market_models.dart';
+import '../models/user_data_models.dart';
 import 'repositories.dart';
 
 /// Phase 3 demo-only repositories. Replace these behind the same interfaces in Phase 4+.
@@ -298,39 +299,112 @@ class MockNotificationRepository implements NotificationRepository {
   }
 }
 
+
 class MockAuthRepository implements AuthRepository {
+  AurumProfile _profile = const AurumProfile(
+    name: 'Guest analyst',
+    email: '',
+    isGuest: true,
+    currency: 'USD',
+    reducedMotion: false,
+  );
+
   @override
-  Future<AurumProfile> register({
+  Future<AurumProfile> me() async => _profile;
+
+  @override
+  Future<UserSession> register({
     required String name,
     required String email,
     required String password,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 550));
-    return AurumProfile(
-      name: name,
-      email: email,
-      isGuest: false,
-      currency: 'USD',
-      reducedMotion: false,
-    );
+    _profile = AurumProfile(name: name, email: email, isGuest: false, currency: 'USD', reducedMotion: false);
+    return _session(_profile);
   }
 
   @override
-  Future<void> sendPasswordReset(String email) =>
-      Future<void>.delayed(const Duration(milliseconds: 500));
+  Future<void> resetPassword({required String token, required String password}) =>
+      Future<void>.delayed(const Duration(milliseconds: 400));
 
   @override
-  Future<AurumProfile> signIn({required String email, required String password}) async {
+  Future<UserSession> signIn({required String email, required String password}) async {
     await Future<void>.delayed(const Duration(milliseconds: 550));
-    return AurumProfile(
-      name: 'Aurum Analyst',
-      email: email,
-      isGuest: false,
-      currency: 'USD',
-      reducedMotion: false,
-    );
+    _profile = AurumProfile(name: 'Aurum Analyst', email: email, isGuest: false, currency: 'USD', reducedMotion: false);
+    return _session(_profile);
   }
 
   @override
-  Future<void> signOut() => Future<void>.delayed(const Duration(milliseconds: 180));
+  Future<UserSession> refresh(String refreshToken) async => _session(_profile);
+
+  @override
+  Future<void> sendPasswordReset(String email) => Future<void>.delayed(const Duration(milliseconds: 500));
+
+  @override
+  Future<void> signOut() async {
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+    _profile = const AurumProfile(name: 'Guest analyst', email: '', isGuest: true, currency: 'USD', reducedMotion: false);
+  }
+
+  UserSession _session(AurumProfile profile) => UserSession(
+    profile: profile,
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    accessExpiresAt: DateTime.now().toUtc().add(const Duration(minutes: 30)),
+    refreshExpiresAt: DateTime.now().toUtc().add(const Duration(days: 30)),
+  );
+}
+
+class MockUserRepository implements UserRepository {
+  UserPreferences _preferences = const UserPreferences(quoteCurrency: 'USD', defaultTimeframe: '1D', theme: 'system');
+  UserNotificationPreferences _notificationPreferences = const UserNotificationPreferences(signalEnabled: true, priceAlertEnabled: true, marketMovementEnabled: false, aiAnalysisEnabled: false, systemEnabled: true, pushEnabled: false);
+
+  @override
+  Future<void> deleteAccount({required String password}) => Future<void>.value();
+
+  @override
+  Future<UserNotificationPreferences> getNotificationPreferences() async => _notificationPreferences;
+
+  @override
+  Future<UserPreferences> getPreferences() async => _preferences;
+
+  @override
+  Future<AurumProfile> updateProfile({required String name}) async => AurumProfile(name: name, email: '', isGuest: false, currency: _preferences.quoteCurrency, reducedMotion: false);
+
+  @override
+  Future<UserNotificationPreferences> updateNotificationPreferences(UserNotificationPreferences preferences) async {
+    _notificationPreferences = preferences;
+    return preferences;
+  }
+
+  @override
+  Future<UserPreferences> updatePreferences(UserPreferences preferences) async {
+    _preferences = preferences;
+    return preferences;
+  }
+}
+
+class MockAlertRepository implements AlertRepository {
+  final List<PriceAlert> _alerts = <PriceAlert>[];
+
+  @override
+  Future<PriceAlert> createAlert({required String assetId, required AlertCondition condition, required double targetPrice}) async {
+    final alert = PriceAlert(id: 'alert-${_alerts.length + 1}', assetId: assetId, condition: condition, targetPrice: targetPrice, status: AlertStatus.active, createdAt: DateTime.now().toUtc());
+    _alerts.add(alert);
+    return alert;
+  }
+
+  @override
+  Future<void> deleteAlert(String id) async => _alerts.removeWhere((PriceAlert alert) => alert.id == id);
+
+  @override
+  Future<List<PriceAlert>> getAlerts() async => List<PriceAlert>.unmodifiable(_alerts);
+
+  @override
+  Future<void> updateAlert({required String id, AlertCondition? condition, double? targetPrice, bool? active}) async {
+    final index = _alerts.indexWhere((PriceAlert item) => item.id == id);
+    if (index == -1) return;
+    final current = _alerts[index];
+    _alerts[index] = PriceAlert(id: current.id, assetId: current.assetId, condition: condition ?? current.condition, targetPrice: targetPrice ?? current.targetPrice, status: active == null ? current.status : active ? AlertStatus.active : AlertStatus.paused, createdAt: current.createdAt);
+  }
 }

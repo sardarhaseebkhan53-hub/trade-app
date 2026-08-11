@@ -19,7 +19,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).valueOrNull;
+    final profile = ref.watch(authControllerProvider).valueOrNull?.profile;
     final overview = ref.watch(marketOverviewProvider);
     final featured = ref.watch(featuredAssetsProvider);
     final insight = ref.watch(homeAiAnalysisProvider);

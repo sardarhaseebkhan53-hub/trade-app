@@ -15,7 +15,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).valueOrNull ?? const AurumProfile(name: 'Guest analyst', email: '', isGuest: true, currency: 'USD', reducedMotion: false);
+    final profile = ref.watch(authControllerProvider).valueOrNull?.profile ?? const AurumProfile(name: 'Guest analyst', email: '', isGuest: true, currency: 'USD', reducedMotion: false);
     return Scaffold(
       appBar: const AurumAppBar(title: 'Profile & settings'),
       body: SafeArea(
@@ -29,6 +29,7 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: AurumSpacing.xs),
             _SettingTile(icon: Icons.tune_rounded, title: 'Preferences', subtitle: '${profile.currency} quote currency', onTap: () => _showMessage(context, 'Preferences')),
             _SettingTile(icon: Icons.notifications_none_rounded, title: 'Notifications', subtitle: 'Signal, price and market updates', onTap: () => context.push('/notifications')),
+            _SettingTile(icon: Icons.add_alert_outlined, title: 'Price alerts', subtitle: 'Create and manage above or below alerts', onTap: () => context.push('/alerts')),
             _SettingTile(icon: Icons.dark_mode_outlined, title: 'Appearance', subtitle: 'Obsidian dark theme', onTap: () => _showMessage(context, 'Appearance')),
             const SizedBox(height: AurumSpacing.lg),
             const _SettingsHeading(label: 'ACCOUNT & SECURITY'),
@@ -43,7 +44,7 @@ class ProfileScreen extends ConsumerWidget {
             if (profile.isGuest)
               AurumButton(label: 'Sign in to sync your workspace', icon: Icons.login_rounded, onPressed: () => context.push('/login'))
             else
-              AurumButton(label: 'Sign out', icon: Icons.logout_rounded, variant: AurumButtonVariant.secondary, onPressed: () async { await ref.read(authControllerProvider.notifier).signOut(); if (context.mounted) context.go('/home'); }),
+              AurumButton(label: 'Sign out', icon: Icons.logout_rounded, variant: AurumButtonVariant.secondary, onPressed: () async { await ref.read(authControllerProvider.notifier).signOut(); if (context.mounted) context.go('/login'); }),
             const SizedBox(height: AurumSpacing.lg),
             const Center(child: Text('AURUM • Demo data • Analysis only, not financial advice', textAlign: TextAlign.center, style: AurumTypography.caption)),
           ],
