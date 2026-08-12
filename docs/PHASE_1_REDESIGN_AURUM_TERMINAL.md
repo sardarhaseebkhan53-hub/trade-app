@@ -1,6 +1,6 @@
 # AURUM TERMINAL — Phase 1 Complete Product Redesign
 
-**Status:** APPROVAL GATE — no implementation until you approve.  
+**Status:** APPROVED — pocket-broker rebuild started (Watch / Markets / TRADE / Portfolio / More).  
 **Date:** 2026-08-12  
 **Device target:** Flutter Android, TECNO K15k / Android 12 first, then other phone sizes.  
 **Not a website. Not a desktop terminal. A phone-first trading-analysis product.**

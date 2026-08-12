@@ -6,6 +6,13 @@ class AurumFormatters {
   static final _percent = NumberFormat('+#0.00%;-0.00%');
 
   static String price(double value) => _price.format(value);
+
+  static String last(double value) {
+    if (value >= 1000) return NumberFormat('#,##0.00').format(value);
+    if (value >= 1) return NumberFormat('#,##0.00').format(value);
+    return NumberFormat('0.0000').format(value);
+  }
+
   static String compactCurrency(double value) => _compact.format(value);
   static String percent(double value) => _percent.format(value / 100);
 

@@ -84,7 +84,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               const AurumBrand(),
               const SizedBox(height: AurumSpacing.sm),
               Text(
-                'MARKET INTELLIGENCE',
+                'POCKET BROKER',
                 style: AurumTypography.caption.copyWith(letterSpacing: 3.2, color: AurumColors.textSecondary),
               ),
               const SizedBox(height: AurumSpacing.xxxl),

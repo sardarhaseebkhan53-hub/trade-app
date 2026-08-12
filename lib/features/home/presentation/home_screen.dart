@@ -6,13 +6,11 @@ import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../domain/market_regime.dart';
-import '../../../shared/models/market_data_models.dart';
+import '../../../domain/broker_signal.dart';
 import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
-import '../../../shared/widgets/data_freshness_indicator.dart';
-import '../../../shared/widgets/financial_components.dart';
+import '../../../shared/widgets/broker_components.dart';
 import '../../../shared/widgets/state_components.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -20,140 +18,127 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).valueOrNull?.profile;
+    final watchlist = ref.watch(watchlistAssetsProvider);
+    final markets = ref.watch(marketsProvider(''));
     final overview = ref.watch(marketOverviewProvider);
-    final featured = ref.watch(featuredAssetsProvider);
-    final watched = ref.watch(watchlistProvider).valueOrNull ?? <String>{};
 
     return Scaffold(
+      backgroundColor: AurumColors.canvas,
       body: SafeArea(
         child: RefreshIndicator(
           color: AurumColors.gold,
           onRefresh: () async {
+            ref.invalidate(watchlistAssetsProvider);
+            ref.invalidate(marketsProvider(''));
             ref.invalidate(marketOverviewProvider);
-            ref.invalidate(featuredAssetsProvider);
           },
           child: CustomScrollView(
             slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(AurumSpacing.lg, AurumSpacing.md, AurumSpacing.lg, AurumSpacing.xxxl),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _Header(name: profile?.name ?? 'Analyst'),
-                    const SizedBox(height: AurumSpacing.xxl),
-                    const SectionHeader(title: 'Market Overview'),
-                    const SizedBox(height: AurumSpacing.sm),
-                    overview.when(
-                      data: (data) => Column(
-                        children: [
-                          _MarketPulse(overview: data),
-                          const SizedBox(height: AurumSpacing.md),
-                          const _RegimeBadge(),
-                        ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(AurumSpacing.md, AurumSpacing.sm, AurumSpacing.md, 0),
+                  child: Row(
+                    children: [
+                      const AurumBrand(compact: true),
+                      const Spacer(),
+                      LivePulse(label: TimeOfDay.now().format(context)),
+                      IconButton(
+                        onPressed: () => context.push('/search'),
+                        icon: const Icon(Icons.search_rounded, color: AurumColors.textPrimary),
                       ),
-                      loading: () => const LoadingSkeleton(height: 170),
-                      error: (_, __) => AurumErrorState(
-                        title: 'Market data unavailable',
-                        message: 'Pull to refresh.',
-                        onRetry: () => ref.invalidate(marketOverviewProvider),
+                      IconButton(
+                        onPressed: () => context.push('/notifications'),
+                        icon: const Icon(Icons.notifications_none_rounded, color: AurumColors.textPrimary),
                       ),
-                    ),
-                    const SizedBox(height: AurumSpacing.xxl),
-                    SectionHeader(
-                      title: 'Featured Assets',
-                      actionLabel: 'Markets',
-                      onAction: () => context.go('/markets'),
-                    ),
-                    const SizedBox(height: AurumSpacing.sm),
-                    featured.when(
-                      data: (assets) => Column(
-                        children: assets.take(3).map((MarketAsset asset) => Padding(
-                          padding: const EdgeInsets.only(bottom: AurumSpacing.sm),
-                          child: CryptoCard(
-                            asset: asset,
-                            isWatched: watched.contains(asset.id),
-                            onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(asset.id),
-                            onTap: () => context.push('/asset/${asset.id}'),
-                          ),
-                        )).toList(),
-                      ),
-                      loading: () => const LoadingSkeleton(height: 220),
-                      error: (_, __) => const AurumErrorState(title: 'Assets unavailable', message: 'Try again'),
-                    ),
-                    const SizedBox(height: AurumSpacing.xxl),
-                    const SectionHeader(title: 'Market Overview'),
-                    const SizedBox(height: AurumSpacing.sm),
-                    _MarketOverviewCard(),
-
-                    const SizedBox(height: AurumSpacing.xxl),
-                    const SectionHeader(title: 'AURUM AI Insight'),
-                    const SizedBox(height: AurumSpacing.sm),
-                    AIInsightCard(
-                      analysis: null,
-                      onTap: () => context.go('/ai-analysis'),
-                    ),
-                    const SizedBox(height: AurumSpacing.md),
-                    const _DataFreshnessIndicator(),
-                    const SizedBox(height: AurumSpacing.xxl),
-
-                    // Quick access to advanced Phase 3 features
-                    const SectionHeader(title: 'Quick Tools'),
-                    const SizedBox(height: AurumSpacing.sm),
-                    Row(
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: overview.when(
+                  data: (data) => Padding(
+                    padding: const EdgeInsets.fromLTRB(AurumSpacing.md, AurumSpacing.sm, AurumSpacing.md, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: AurumCard(
-                            onTap: () => context.push('/analysis'),
-                            child: const Column(
-                              children: [
-                                Icon(Icons.analytics_outlined, color: AurumColors.gold, size: 28),
-                                SizedBox(height: 6),
-                                Text('Analysis', style: AurumTypography.label),
-                              ],
+                        Text('Positions', style: AurumTypography.caption),
+                        Row(
+                          children: [
+                            Text(AurumFormatters.compactCurrency(data.totalMarketCapUsd), style: AurumTypography.priceCard),
+                            const SizedBox(width: 10),
+                            Text(
+                              '${data.marketCapChange24h >= 0 ? '+' : ''}${data.marketCapChange24h.toStringAsFixed(2)}%',
+                              style: AurumTypography.percentage.copyWith(
+                                color: AurumColors.movement(data.marketCapChange24h >= 0),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: AurumSpacing.sm),
-                        Expanded(
-                          child: AurumCard(
-                            onTap: () => context.push('/scanner'),
-                            child: const Column(
-                              children: [
-                                Icon(Icons.search_rounded, color: AurumColors.gold, size: 28),
-                                SizedBox(height: 6),
-                                Text('Scanner', style: AurumTypography.label),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AurumSpacing.sm),
-                        Expanded(
-                          child: AurumCard(
-                            onTap: () => context.push('/journal'),
-                            child: const Column(
-                              children: [
-                                Icon(Icons.book_outlined, color: AurumColors.gold, size: 28),
-                                SizedBox(height: 6),
-                                Text('Journal', style: AurumTypography.label),
-                              ],
-                            ),
-                          ),
+                        Text(
+                          'Market cap tape · not a wallet',
+                          style: AurumTypography.caption,
                         ),
                       ],
                     ),
-                    SectionHeader(
-                      title: 'Signals',
-                      actionLabel: 'View all',
-                      onAction: () => context.go('/signals'),
-                    ),
-                    const SizedBox(height: AurumSpacing.sm),
-                    const SignalCard(signal: null),
-                    const SizedBox(height: AurumSpacing.xxl),
-                    const SectionHeader(title: 'Quick Actions'),
-                    const SizedBox(height: AurumSpacing.sm),
-                    _QuickActions(),
-                  ]),
+                  ),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(AurumSpacing.md),
+                    child: LoadingSkeleton(height: 56),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
                 ),
+              ),
+              SliverToBoxAdapter(
+                child: markets.when(
+                  data: (assets) => _Tape(assets: assets),
+                  loading: () => const SizedBox(height: 36),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ),
+              const SliverToBoxAdapter(child: _ColumnHeader()),
+              ...watchlist.when(
+                data: (list) {
+                  final rows = list.isEmpty
+                      ? (markets.valueOrNull ?? const <MarketAsset>[])
+                      : list;
+                  if (rows.isEmpty) {
+                    return [
+                      const SliverToBoxAdapter(
+                        child: AurumEmptyState(
+                          title: 'No quotes',
+                          message: 'Watchlist is empty. Open Markets to add symbols.',
+                        ),
+                      ),
+                    ];
+                  }
+                  return [
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final asset = rows[index];
+                          return QuoteRow(
+                            asset: asset,
+                            side: brokerSideFromChange(asset.change24h),
+                            onTap: () => context.push('/asset/${asset.id}'),
+                          );
+                        },
+                        childCount: rows.length,
+                      ),
+                    ),
+                  ];
+                },
+                loading: () => [
+                  const SliverToBoxAdapter(child: LoadingList(count: 6)),
+                ],
+                error: (_, __) => [
+                  SliverToBoxAdapter(
+                    child: AurumErrorState(
+                      title: 'Quotes unavailable',
+                      message: 'Pull to refresh.',
+                      onRetry: () => ref.invalidate(watchlistAssetsProvider),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -163,187 +148,48 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.name});
-  final String name;
+class _Tape extends StatelessWidget {
+  const _Tape({required this.assets});
+  final List<MarketAsset> assets;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AurumBrand(compact: true),
-              const SizedBox(height: AurumSpacing.xs),
-              Text('Good to see you, $name', style: AurumTypography.h2),
-            ],
-          ),
-        ),
-        IconButton(
-          onPressed: () => context.push('/notifications'),
-          icon: const Icon(Icons.notifications_none_rounded, color: AurumColors.textPrimary),
-        ),
-        const SizedBox(width: 6),
-        GestureDetector(
-          onTap: () => context.push('/profile'),
-          child: const CircleAvatar(
-            radius: 17,
-            backgroundColor: AurumColors.surfaceElevated,
-            child: Icon(Icons.person_outline_rounded, color: AurumColors.goldSoft, size: 18),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MarketPulse extends StatelessWidget {
-  const _MarketPulse({required this.overview});
-  final MarketOverview overview;
-
-  @override
-  Widget build(BuildContext context) {
-    return AurumCard(
-      padding: const EdgeInsets.all(AurumSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Global market cap', style: AurumTypography.caption),
-          Text(AurumFormatters.compactCurrency(overview.totalMarketCapUsd), style: AurumTypography.priceCard),
-          const SizedBox(height: AurumSpacing.sm),
-          Text(
-            '${overview.marketCapChange24h >= 0 ? '+' : ''}${overview.marketCapChange24h.toStringAsFixed(1)}%  •  BTC dom ${overview.btcDominance.toStringAsFixed(1)}%',
-            style: AurumTypography.body,
-          ),
-        ],
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AurumSpacing.md, vertical: 8),
+        itemCount: assets.length.clamp(0, 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        itemBuilder: (_, i) {
+          final a = assets[i];
+          final up = a.isPositive;
+          return Text(
+            '${a.symbol} ${up ? '+' : ''}${a.change24h.toStringAsFixed(2)}%',
+            style: AurumTypography.caption.copyWith(color: AurumColors.movement(up)),
+          );
+        },
       ),
     );
   }
 }
 
-class _RegimeBadge extends StatelessWidget {
-  const _RegimeBadge({super.key});
+class _ColumnHeader extends StatelessWidget {
+  const _ColumnHeader();
 
   @override
   Widget build(BuildContext context) {
-    // In real implementation this would come from a provider
-    const regime = MarketRegimeResult(
-      regime: MarketRegime.trending,
-      confidence: 74,
-      volatilityLevel: 'Normal',
-      description: 'Clear directional trend with moderate volatility.',
-    );
-
-    return AurumCard(
-      borderColor: AurumColors.gold.withValues(alpha: 0.3),
+    final style = AurumTypography.caption.copyWith(letterSpacing: 0.8);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AurumSpacing.md, 4, AurumSpacing.md, 4),
       child: Row(
         children: [
-          const Icon(Icons.trending_up, color: AurumColors.gold),
-          const SizedBox(width: AurumSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Market Regime: ${regime.displayName}', style: AurumTypography.h3),
-                Text(regime.description, style: AurumTypography.caption),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AurumColors.gold.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text('${regime.confidence}/100', style: AurumTypography.label.copyWith(color: AurumColors.gold)),
-          ),
+          SizedBox(width: 52, child: Text('SYM', style: style)),
+          Expanded(child: Text('LAST', textAlign: TextAlign.right, style: style)),
+          SizedBox(width: 72, child: Text('%', textAlign: TextAlign.right, style: style)),
+          const SizedBox(width: 64, child: Text('SIG', textAlign: TextAlign.right)),
         ],
       ),
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final actions = [
-      ('Markets', '/markets', Icons.bar_chart_rounded),
-      ('AI Analyst', '/ai-analysis', Icons.auto_awesome_outlined),
-      ('Signals', '/signals', Icons.insights_outlined),
-      ('Search', '/search', Icons.search_rounded),
-    ];
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AurumSpacing.sm,
-      crossAxisSpacing: AurumSpacing.sm,
-      childAspectRatio: 3.1,
-      children: actions.map((a) {
-        return AurumCard(
-          onTap: () => context.push(a.$2),
-          padding: const EdgeInsets.symmetric(horizontal: AurumSpacing.md),
-          child: Row(
-            children: [
-              Icon(a.$3, color: AurumColors.gold, size: 20),
-              const SizedBox(width: AurumSpacing.sm),
-              Text(a.$1, style: AurumTypography.label),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _DataFreshnessIndicator extends StatelessWidget {
-  const _DataFreshnessIndicator({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Demo: in real app this would be driven by DataIntegrityService + market repo
-    return const DataFreshnessIndicator(
-      freshness: DataFreshness.live,
-      lastUpdated: null, // will show "No timestamp available" or use current
-    );
-  }
-}
-
-class _MarketOverviewCard extends ConsumerWidget {
-  const _MarketOverviewCard({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final overview = ref.watch(marketOverviewProvider);
-
-    return overview.when(
-      data: (data) => AurumCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('Market Overview', style: AurumTypography.label),
-                const Spacer(),
-                const DataFreshnessIndicator(freshness: DataFreshness.live, lastUpdated: null),
-              ],
-            ),
-            const SizedBox(height: AurumSpacing.sm),
-            Text(
-              AurumFormatters.compactCurrency(data.totalMarketCapUsd),
-              style: AurumTypography.priceCard,
-            ),
-            Text(
-              '24h Vol: ${AurumFormatters.compactCurrency(data.totalVolumeUsd)}  •  BTC dom ${data.btcDominance.toStringAsFixed(1)}%',
-              style: AurumTypography.caption,
-            ),
-          ],
-        ),
-      ),
-      loading: () => const LoadingSkeleton(height: 110),
-      error: (_, __) => const AurumErrorState(title: 'Overview unavailable', message: 'Pull to refresh market data.'),
     );
   }
 }
