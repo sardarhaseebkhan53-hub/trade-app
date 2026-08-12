@@ -41,13 +41,23 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       const AurumBrand(compact: true),
                       const Spacer(),
-                      LivePulse(label: TimeOfDay.now().format(context)),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: LivePulse(label: TimeOfDay.now().format(context)),
+                          ),
+                        ),
+                      ),
                       IconButton(
                         onPressed: () => context.push('/search'),
+                        visualDensity: VisualDensity.compact,
                         icon: const Icon(Icons.search_rounded, color: AurumColors.textPrimary),
                       ),
                       IconButton(
                         onPressed: () => context.push('/notifications'),
+                        visualDensity: VisualDensity.compact,
                         icon: const Icon(Icons.notifications_none_rounded, color: AurumColors.textPrimary),
                       ),
                     ],
@@ -64,7 +74,14 @@ class HomeScreen extends ConsumerWidget {
                         Text('Positions', style: AurumTypography.caption),
                         Row(
                           children: [
-                            Text(AurumFormatters.compactCurrency(data.totalMarketCapUsd), style: AurumTypography.priceCard),
+                            Flexible(
+                              child: Text(
+                                AurumFormatters.compactCurrency(data.totalMarketCapUsd),
+                                style: AurumTypography.priceCard,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             const SizedBox(width: 10),
                             Text(
                               '${data.marketCapChange24h >= 0 ? '+' : ''}${data.marketCapChange24h.toStringAsFixed(2)}%',
@@ -187,7 +204,7 @@ class _ColumnHeader extends StatelessWidget {
           SizedBox(width: 52, child: Text('SYM', style: style)),
           Expanded(child: Text('LAST', textAlign: TextAlign.right, style: style)),
           SizedBox(width: 72, child: Text('%', textAlign: TextAlign.right, style: style)),
-          const SizedBox(width: 64, child: Text('SIG', textAlign: TextAlign.right)),
+          SizedBox(width: 64, child: Text('SIG', textAlign: TextAlign.right, style: style)),
         ],
       ),
     );
