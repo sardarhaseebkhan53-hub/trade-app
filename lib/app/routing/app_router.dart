@@ -52,9 +52,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       GoRoute(path: AurumRoutes.journal, builder: (_, __) => const JournalScreen()),
       GoRoute(path: AurumRoutes.scanner, builder: (_, __) => const ScannerScreen()),
+      GoRoute(path: AurumRoutes.profile, builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: AurumRoutes.signals, builder: (_, __) => const SignalsScreen()),
 
       GoRoute(
-        path: \'/search',
+        path: '/search',
         builder: (_, __) => const SearchScreen(),
       ),
       GoRoute(

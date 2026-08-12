@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
-import '../../../domain/data_integrity.dart';
+import '../../../shared/models/market_data_models.dart';
+import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 import '../../../shared/widgets/data_freshness_indicator.dart';
@@ -27,12 +28,13 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final featured = ref.watch(featuredAssetsProvider).valueOrNull ?? [];
-    final assets = featured.isNotEmpty ? featured : [];
-    final asset = assets.firstWhere(
-      (a) => a.id == _selectedAsset,
-      orElse: () => assets.isNotEmpty ? assets.first : null,
-    );
+    final assets = ref.watch(featuredAssetsProvider).valueOrNull ?? const <MarketAsset>[];
+    final MarketAsset? asset = assets.isEmpty
+        ? null
+        : assets.firstWhere(
+            (item) => item.id == _selectedAsset,
+            orElse: () => assets.first,
+          );
 
     final chartAsync = asset != null
         ? ref.watch(chartProvider(ChartRequest(asset.id, _timeframe)))
@@ -105,11 +107,12 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               if (chartAsync != null)
                 chartAsync.when(
                   data: (points) => _IndicatorsSummary(
-                    assetId: _selectedAsset,
-                    prices: points.map((p) => p.price).toList(),
+                    prices: points
+                        .map((HistoricalPrice point) => point.priceUsd)
+                        .toList(growable: false),
                   ),
                   loading: () => const LoadingSkeleton(height: 180),
-                  error: (_, __) => const AurumErrorState(title: 'Indicators unavailable'),
+                  error: (_, __) => const AurumErrorState(title: 'Indicators unavailable', message: 'Try another timeframe.'),
                 )
               else
                 const AurumEmptyState(title: 'Select an asset', message: 'No chart data'),
@@ -126,7 +129,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               // MULTI-INDICATOR OVERVIEW
               const SectionHeader(title: 'Indicator Summary'),
               const SizedBox(height: AurumSpacing.sm),
-              _MultiIndicatorCard(assetId: _selectedAsset),
+              const _MultiIndicatorCard(),
 
               const SizedBox(height: AurumSpacing.xxl),
 
@@ -150,7 +153,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   }
 
   void _showIndicatorSettings(BuildContext context) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (_) => Padding(
         padding: const EdgeInsets.all(AurumSpacing.lg),
@@ -200,11 +203,10 @@ class _TimeframeSelector extends StatelessWidget {
 
 class _RegimeCard extends StatelessWidget {
   const _RegimeCard({required this.asset, super.key});
-  final dynamic asset;
+  final MarketAsset asset;
 
   @override
   Widget build(BuildContext context) {
-    // Real regime logic (simplified from existing domain + service)
     final regime = _computeRegime(asset);
 
     return AurumCard(
@@ -216,7 +218,7 @@ class _RegimeCard extends StatelessWidget {
             children: [
               const Icon(Icons.trending_up, color: AurumColors.gold),
               const SizedBox(width: AurumSpacing.sm),
-              Text('Market Regime: ${regime['name']}', style: AurumTypography.h3),
+              Text('Market Regime: ${regime.name}', style: AurumTypography.h3),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -224,35 +226,59 @@ class _RegimeCard extends StatelessWidget {
                   color: AurumColors.gold.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text('${regime['confidence']}%', style: AurumTypography.label.copyWith(color: AurumColors.gold)),
+                child: Text(
+                  '${regime.confidence}%',
+                  style: AurumTypography.label.copyWith(color: AurumColors.gold),
+                ),
               ),
             ],
           ),
           const SizedBox(height: AurumSpacing.sm),
-          Text(regime['description'], style: AurumTypography.body),
+          Text(regime.description, style: AurumTypography.body),
           const SizedBox(height: AurumSpacing.sm),
-          Text('Factors: ${regime['factors']}', style: AurumTypography.caption),
+          Text('Factors: ${regime.factors}', style: AurumTypography.caption),
         ],
       ),
     );
   }
 
-  Map<String, dynamic> _computeRegime(dynamic a) {
-    final change = a.change24h as double;
-    if (change > 4) {
-      return {'name': 'STRONG BULL', 'confidence': 78, 'description': 'Strong upward momentum with high participation.', 'factors': 'Price + Volume + Momentum'};
-    } else if (change > 1.5) {
-      return {'name': 'BULL', 'confidence': 64, 'description': 'Constructive price action above key averages.', 'factors': 'Trend + RSI'};
-    } else if (change < -3) {
-      return {'name': 'BEAR', 'confidence': 71, 'description': 'Downward pressure with elevated volatility.', 'factors': 'Price structure + Volume'};
+  ({String name, int confidence, String description, String factors})
+      _computeRegime(MarketAsset asset) {
+    if (asset.change24h > 4) {
+      return (
+        name: 'STRONG BULL',
+        confidence: 78,
+        description: 'Strong upward momentum with high participation.',
+        factors: 'Price + Volume + Momentum',
+      );
     }
-    return {'name': 'SIDEWAYS', 'confidence': 52, 'description': 'Range-bound market. Wait for confirmation.', 'factors': 'Low volatility + Range'};
+    if (asset.change24h > 1.5) {
+      return (
+        name: 'BULL',
+        confidence: 64,
+        description: 'Constructive price action above key averages.',
+        factors: 'Trend + RSI',
+      );
+    }
+    if (asset.change24h < -3) {
+      return (
+        name: 'BEAR',
+        confidence: 71,
+        description: 'Downward pressure with elevated volatility.',
+        factors: 'Price structure + Volume',
+      );
+    }
+    return (
+      name: 'SIDEWAYS',
+      confidence: 52,
+      description: 'Range-bound market. Wait for confirmation.',
+      factors: 'Low volatility + Range',
+    );
   }
 }
 
 class _IndicatorsSummary extends StatelessWidget {
-  const _IndicatorsSummary({required this.assetId, required this.prices, super.key});
-  final String assetId;
+  const _IndicatorsSummary({required this.prices, super.key});
   final List<double> prices;
 
   @override
@@ -262,6 +288,8 @@ class _IndicatorsSummary extends StatelessWidget {
 
     // Additional real indicators (lightweight)
     final rsi = result['rsi'] as double? ?? 50.0;
+    final support = result['support'] as double?;
+    final resistance = result['resistance'] as double?;
     final sma20 = _sma(prices, 20);
     final ema12 = _ema(prices, 12);
 
@@ -271,8 +299,8 @@ class _IndicatorsSummary extends StatelessWidget {
           _IndicatorRow('RSI (14)', rsi.toStringAsFixed(1), rsi > 70 ? 'Overbought' : (rsi < 30 ? 'Oversold' : 'Neutral')),
           _IndicatorRow('SMA 20', sma20?.toStringAsFixed(0) ?? '—', prices.last > (sma20 ?? prices.last) ? 'Above' : 'Below'),
           _IndicatorRow('EMA 12', ema12?.toStringAsFixed(0) ?? '—', 'Momentum'),
-          _IndicatorRow('Support', result['support']?.toStringAsFixed(0) ?? '—', 'Key level'),
-          _IndicatorRow('Resistance', result['resistance']?.toStringAsFixed(0) ?? '—', 'Key level'),
+          _IndicatorRow('Support', support?.toStringAsFixed(0) ?? '—', 'Key level'),
+          _IndicatorRow('Resistance', resistance?.toStringAsFixed(0) ?? '—', 'Key level'),
           _IndicatorRow('Volume', 'Avg', 'Normal'),
         ],
       ),
@@ -359,8 +387,7 @@ class _TrendRow extends StatelessWidget {
 }
 
 class _MultiIndicatorCard extends StatelessWidget {
-  const _MultiIndicatorCard({required this.assetId, super.key});
-  final String assetId;
+  const _MultiIndicatorCard({super.key});
 
   @override
   Widget build(BuildContext context) {

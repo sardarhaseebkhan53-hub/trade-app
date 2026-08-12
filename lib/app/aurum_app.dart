@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/storage/app_lock_service.dart';
+import '../shared/models/user_data_models.dart';
 import '../shared/services/providers.dart';
 import 'routing/app_router.dart';
 import 'theme/aurum_theme.dart';

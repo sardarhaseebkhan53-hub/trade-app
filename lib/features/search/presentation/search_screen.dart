@@ -8,6 +8,7 @@ import '../../../app/theme/aurum_typography.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 import '../../../shared/widgets/financial_components.dart';
+import '../../../shared/widgets/state_components.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});

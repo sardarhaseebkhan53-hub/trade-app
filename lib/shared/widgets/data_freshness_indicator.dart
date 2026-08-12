@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../app/theme/aurum_colors.dart';
 import '../../app/theme/aurum_spacing.dart';
 import '../../app/theme/aurum_typography.dart';
+import '../../domain/data_integrity.dart';
 
-enum DataFreshness { live, delayed, stale, offline }
+export '../../domain/data_integrity.dart' show DataFreshness;
 
 class DataFreshnessIndicator extends StatelessWidget {
   const DataFreshnessIndicator({

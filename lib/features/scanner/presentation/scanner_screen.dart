@@ -7,6 +7,7 @@ import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
+import '../../../shared/widgets/financial_components.dart';
 import '../../../shared/widgets/state_components.dart';
 
 /// PHASE 3: Basic Market Scanner (real data)
@@ -86,7 +87,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const AurumErrorState(title: 'Scanner unavailable'),
+        error: (_, __) => const AurumErrorState(title: 'Scanner unavailable', message: 'Refresh to try again.'),
       ),
     );
   }

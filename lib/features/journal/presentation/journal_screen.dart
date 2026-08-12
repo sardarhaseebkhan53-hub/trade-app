@@ -5,6 +5,7 @@ import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
+import '../../../shared/widgets/state_components.dart';
 
 /// PHASE 3: Trading Journal
 /// Real journal entries with analytics.

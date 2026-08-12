@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trade_app/features/analysis/services/technical_analysis_service.dart';
+import 'package:aurum/features/analysis/services/technical_analysis_service.dart';
 
 void main() {
   group('TechnicalAnalysisService', () {

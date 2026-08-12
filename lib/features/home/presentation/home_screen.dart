@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
-import '../../../domain/data_integrity.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../domain/market_regime.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
@@ -341,7 +341,7 @@ class _MarketOverviewCard extends ConsumerWidget {
         ),
       ),
       loading: () => const LoadingSkeleton(height: 110),
-      error: (_, __) => const AurumErrorState(title: 'Overview unavailable'),
+      error: (_, __) => const AurumErrorState(title: 'Overview unavailable', message: 'Pull to refresh market data.'),
     );
   }
 }

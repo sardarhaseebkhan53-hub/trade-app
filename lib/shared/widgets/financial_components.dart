@@ -5,7 +5,7 @@ import '../../app/theme/aurum_radius.dart';
 import '../../app/theme/aurum_spacing.dart';
 import '../../app/theme/aurum_typography.dart';
 import '../../core/utils/formatters.dart';
-import '../../domain/market_entities.dart';
+import '../models/market_models.dart';
 import 'aurum_primitives.dart';
 import 'charts.dart';
 
@@ -19,7 +19,7 @@ class CryptoCard extends StatelessWidget {
     this.onTap,
   });
 
-  final Asset asset;
+  final MarketAsset asset;
   final bool showMarketStats;
   final bool isWatched;
   final VoidCallback? onWatchToggle;
@@ -135,7 +135,7 @@ class AssetHeader extends StatelessWidget {
     super.key,
   });
 
-  final Asset asset;
+  final MarketAsset asset;
   final bool isWatched;
   final VoidCallback onWatchToggle;
 
