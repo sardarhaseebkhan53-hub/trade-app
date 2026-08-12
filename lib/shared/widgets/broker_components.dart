@@ -94,12 +94,19 @@ class QuoteRow extends StatelessWidget {
             children: [
               SizedBox(
                 width: 52,
-                child: Text(asset.symbol, style: AurumTypography.label.copyWith(color: AurumColors.textPrimary)),
+                child: Text(
+                  asset.symbol,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AurumTypography.label.copyWith(color: AurumColors.textPrimary),
+                ),
               ),
               Expanded(
                 child: Text(
                   AurumFormatters.last(asset.price),
                   textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AurumTypography.priceRow,
                 ),
               ),
@@ -108,16 +115,31 @@ class QuoteRow extends StatelessWidget {
                 child: Text(
                   '${up ? '+' : ''}${asset.change24h.toStringAsFixed(2)}',
                   textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AurumTypography.percentage.copyWith(color: color),
                 ),
               ),
-              const SizedBox(width: 10),
-              SignalPill(side: side, compact: true),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 56,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: SignalPill(side: side, compact: true),
+                ),
+              ),
               if (score != null) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 SizedBox(
                   width: 22,
-                  child: Text('$score', textAlign: TextAlign.right, style: AurumTypography.caption),
+                  child: Text(
+                    '$score',
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AurumTypography.caption,
+                  ),
                 ),
               ],
             ],

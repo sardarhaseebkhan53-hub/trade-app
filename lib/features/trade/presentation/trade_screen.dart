@@ -62,10 +62,22 @@ class _TradeScreenState extends ConsumerState<TradeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${asset.symbol} / USDT', style: AurumTypography.label.copyWith(color: AurumColors.textPrimary)),
+                            Text(
+                              '${asset.symbol} / USDT',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AurumTypography.label.copyWith(color: AurumColors.textPrimary),
+                            ),
                             Row(
                               children: [
-                                Text(AurumFormatters.last(asset.price), style: AurumTypography.priceCard),
+                                Flexible(
+                                  child: Text(
+                                    AurumFormatters.last(asset.price),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AurumTypography.priceCard,
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   '${asset.isPositive ? '+' : ''}${asset.change24h.toStringAsFixed(2)}%',

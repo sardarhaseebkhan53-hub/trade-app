@@ -33,72 +33,90 @@ class CryptoCard extends StatelessWidget {
     return AurumCard(
       onTap: onTap,
       padding: const EdgeInsets.all(AurumSpacing.md),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AurumColors.surfaceElevated,
-              borderRadius: AurumRadius.control,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              asset.symbol,
-              style: AurumTypography.label.copyWith(color: AurumColors.goldSoft),
-            ),
-          ),
-          const SizedBox(width: AurumSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showChart = constraints.maxWidth >= 300 && asset.sparkline.isNotEmpty;
+          return Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AurumColors.surfaceElevated,
+                  borderRadius: AurumRadius.control,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  asset.symbol,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AurumTypography.label.copyWith(color: AurumColors.goldSoft),
+                ),
+              ),
+              const SizedBox(width: AurumSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(asset.symbol, style: AurumTypography.h3),
-                    const SizedBox(width: AurumSpacing.xs),
-                    Text(
-                      asset.name,
-                      style: AurumTypography.caption,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Text(asset.symbol, style: AurumTypography.h3),
+                        const SizedBox(width: AurumSpacing.xs),
+                        Expanded(
+                          child: Text(
+                            asset.name,
+                            style: AurumTypography.caption,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
+                    if (showMarketStats) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'MCap ${AurumFormatters.compactCurrency(asset.marketCap)}',
+                        style: AurumTypography.caption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
-                if (showMarketStats) ...[
+              ),
+              const SizedBox(width: AurumSpacing.xs),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(AurumFormatters.price(asset.price), style: AurumTypography.priceRow),
                   const SizedBox(height: 2),
                   Text(
-                    'MCap ${AurumFormatters.compactCurrency(asset.marketCap)}',
-                    style: AurumTypography.caption,
+                    '${positive ? '+' : ''}${asset.change24h.toStringAsFixed(2)}%',
+                    style: AurumTypography.percentage.copyWith(color: color),
                   ),
                 ],
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(AurumFormatters.price(asset.price), style: AurumTypography.priceRow),
-              const SizedBox(height: 2),
-              Text(
-                '${positive ? '+' : ''}${asset.change24h.toStringAsFixed(2)}%',
-                style: AurumTypography.percentage.copyWith(color: color),
               ),
+              if (showChart) ...[
+                const SizedBox(width: AurumSpacing.sm),
+                MiniChart(points: asset.sparkline, isPositive: positive),
+              ],
+              if (onWatchToggle != null) ...[
+                const SizedBox(width: AurumSpacing.xs),
+                IconButton(
+                  icon: Icon(
+                    isWatched ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: isWatched ? AurumColors.gold : AurumColors.textTertiary,
+                  ),
+                  onPressed: onWatchToggle,
+                  iconSize: 20,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
             ],
-          ),
-          const SizedBox(width: AurumSpacing.sm),
-          if (asset.sparkline.isNotEmpty)
-            MiniChart(points: asset.sparkline, isPositive: positive),
-          const SizedBox(width: AurumSpacing.sm),
-          IconButton(
-            icon: Icon(
-              isWatched ? Icons.star_rounded : Icons.star_outline_rounded,
-              color: isWatched ? AurumColors.gold : AurumColors.textTertiary,
-            ),
-            onPressed: onWatchToggle,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -147,7 +165,7 @@ class AssetHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(asset.name, style: AurumTypography.h2),
+              Text(asset.name, style: AurumTypography.h2, maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(asset.symbol, style: AurumTypography.body.copyWith(color: AurumColors.goldSoft)),
             ],
           ),

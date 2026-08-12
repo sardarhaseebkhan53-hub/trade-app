@@ -52,12 +52,19 @@ class LoadingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      physics: const NeverScrollableScrollPhysics(),
+    // Column (not ListView) so this can sit inside another scroll view or a
+    // SliverToBoxAdapter without throwing "Vertical viewport was given unbounded height".
+    return Padding(
       padding: const EdgeInsets.all(AurumSpacing.lg),
-      itemCount: count,
-      separatorBuilder: (_, __) => const SizedBox(height: AurumSpacing.sm),
-      itemBuilder: (_, __) => LoadingSkeleton(height: itemHeight),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < count; i++) ...[
+            if (i > 0) const SizedBox(height: AurumSpacing.sm),
+            LoadingSkeleton(height: itemHeight),
+          ],
+        ],
+      ),
     );
   }
 }
