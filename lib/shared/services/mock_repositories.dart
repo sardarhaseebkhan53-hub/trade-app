@@ -124,33 +124,35 @@ class MockMarketRepository implements MarketRepository {
 
   @override
   Future<MarketSnapshot<ChartSeries>> getChart(String assetId, String timeframe) async {
-    await Future<void>.delayed(const Duration(milliseconds: 520));
+    await Future<void>.delayed(const Duration(milliseconds: 280));
     final asset = (await getAsset(assetId)).data;
-    final multiplier = switch (timeframe) {
-      '1H' => 0.55,
-      '4H' => 0.7,
-      '1D' => 1.0,
-      '1W' => 1.35,
-      '1M' => 1.75,
-      _ => 2.1,
-    };
     final now = DateTime.now().toUtc();
-    final prices = List<HistoricalPrice>.generate(
-      asset.sparkline.length,
-      (int index) => HistoricalPrice(
-        timestamp: now.subtract(Duration(minutes: (asset.sparkline.length - index) * 5)),
-        priceUsd: asset.sparkline[index] * multiplier,
-      ),
-      growable: false,
-    );
+    final seed = asset.price;
+    final direction = asset.change24h >= 0 ? 1.0 : -1.0;
+    final prices = <HistoricalPrice>[];
+    final volumes = <VolumeData>[];
+    var price = seed * 0.94;
+    for (var index = 0; index < 80; index++) {
+      final wave = (index % 9 - 4) * seed * 0.0014;
+      final drift = direction * seed * 0.0007 * index / 80;
+      price = (price + wave + drift).clamp(seed * 0.88, seed * 1.12);
+      prices.add(HistoricalPrice(
+        timestamp: now.subtract(Duration(minutes: (80 - index) * 15)),
+        priceUsd: price,
+      ));
+      volumes.add(VolumeData(
+        timestamp: prices.last.timestamp,
+        volumeUsd: asset.volume / 80 * (0.7 + (index % 5) * 0.12),
+      ));
+    }
     return _snapshot(
       ChartSeries(
         prices: prices,
-        volumes: const <VolumeData>[],
+        volumes: volumes,
         requestedTimeframe: timeframe,
-        sourceIntervalLabel: 'demo-derived $timeframe view',
+        sourceIntervalLabel: 'synthetic $timeframe series',
       ),
-      interval: 'demo-derived $timeframe view',
+      interval: 'synthetic $timeframe series',
     );
   }
 

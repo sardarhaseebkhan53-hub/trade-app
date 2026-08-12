@@ -6,6 +6,8 @@ abstract final class AurumRoutes {
   static const forgotPassword = '/forgot-password';
   static const home = '/home';
   static const markets = '/markets';
+  static const trade = '/trade';
+  static const more = '/more';
   static const analysis = '/analysis';
   static const aiAnalysis = '/ai-analysis';
   static const portfolio = '/portfolio';

@@ -5,16 +5,17 @@ import 'package:go_router/go_router.dart';
 import '../../features/ai_analysis/presentation/ai_analysis_screen.dart';
 import '../../features/alerts/presentation/alerts_screen.dart';
 import '../../features/analysis/presentation/analysis_screen.dart';
-import '../../features/asset_details/presentation/asset_detail_screen.dart';
 import '../../features/authentication/presentation/auth_screens.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/journal/presentation/journal_screen.dart';
 import '../../features/markets/presentation/markets_screen.dart';
+import '../../features/more/presentation/more_screen.dart';
 import '../../features/scanner/presentation/scanner_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/portfolio/presentation/portfolio_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/trade/presentation/trade_screen.dart';
 import '../../features/ai_history/presentation/ai_history_screen.dart';
 import '../../features/safety_privacy/presentation/legal_policies_screen.dart';
 import '../../features/safety_privacy/presentation/permission_explanation_screen.dart';
@@ -44,9 +45,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: AurumRoutes.home, builder: (_, __) => const HomeScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: AurumRoutes.markets, builder: (_, __) => const MarketsScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: AurumRoutes.analysis, builder: (_, __) => const AnalysisScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: AurumRoutes.aiAnalysis, builder: (_, state) => AiAnalysisScreen(initialAssetId: state.uri.queryParameters['asset']))]),
+          StatefulShellBranch(routes: [GoRoute(path: AurumRoutes.trade, builder: (_, __) => const TradeScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: AurumRoutes.portfolio, builder: (_, __) => const PortfolioScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: AurumRoutes.more, builder: (_, __) => const MoreScreen())]),
         ],
       ),
 
@@ -90,8 +91,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: '${AurumRoutes.asset}/:assetId',
-        builder: (context, state) => AssetDetailScreen(assetId: state.pathParameters['assetId']!),
+        builder: (context, state) => TradeScreen(assetId: state.pathParameters['assetId']!),
       ),
+      GoRoute(
+        path: AurumRoutes.aiAnalysis,
+        builder: (_, state) => AiAnalysisScreen(initialAssetId: state.uri.queryParameters['asset']),
+      ),
+      GoRoute(path: AurumRoutes.analysis, builder: (_, __) => const AnalysisScreen()),
       GoRoute(path: AurumRoutes.watchlist, builder: (_, __) => const WatchlistScreen()),
       GoRoute(path: AurumRoutes.alerts, builder: (_, __) => const AlertsScreen()),
       GoRoute(path: AurumRoutes.notifications, builder: (_, __) => const NotificationsScreen()),

@@ -6,6 +6,9 @@ import '../../core/networking/aurum_backend_client.dart';
 import '../../core/storage/app_lock_service.dart';
 import '../../core/storage/biometric_service.dart';
 import '../../core/storage/secure_session_store.dart';
+import '../../features/analysis/domain/analysis_models.dart';
+import '../../features/analysis/services/market_analysis_engine.dart';
+import '../../features/analysis/services/technical_analysis_service.dart';
 import '../models/market_data_models.dart';
 import '../models/market_models.dart';
 import '../models/user_data_models.dart';
@@ -187,6 +190,25 @@ final chartProvider = FutureProvider.family<List<HistoricalPrice>, ChartRequest>
   final repo = ref.read(marketRepositoryProvider);
   final snap = await repo.getChart(req.assetId, req.timeframe);
   return snap.data.prices;
+});
+
+final ohlcProvider = FutureProvider.family<List<OHLCData>, ChartRequest>((ref, req) async {
+  final repo = ref.read(marketRepositoryProvider);
+  final snap = await repo.getOhlc(req.assetId, req.timeframe);
+  return snap.data;
+});
+
+final marketTicketProvider = FutureProvider.family<MarketAnalysis, ChartRequest>((ref, req) async {
+  final repo = ref.read(marketRepositoryProvider);
+  final assetSnap = await repo.getAsset(req.assetId);
+  final chartSnap = await repo.getChart(req.assetId, req.timeframe);
+  final technical = const TechnicalAnalysisService().evaluate(chartSnap.data);
+  return const MarketAnalysisEngine().analyze(
+    asset: assetSnap.data,
+    timeframe: req.timeframe,
+    dataAsOf: chartSnap.asOf,
+    technical: technical,
+  );
 });
 
 // === BIOMETRIC + GOOGLE PROVIDERS ===

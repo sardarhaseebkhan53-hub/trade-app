@@ -48,7 +48,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
 
     return Scaffold(
       appBar: AurumAppBar(
-        title: 'Portfolio',
+        title: 'Positions',
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded, color: AurumColors.gold),
