@@ -67,7 +67,7 @@ class _AiAnalysisScreenState extends ConsumerState<AiAnalysisScreen> {
 
               // Simulated structured AI result (in real build this would come from backend + analysis)
               AurumCard(
-                borderColor: AurumColors.gold.withOpacity(0.35),
+                borderColor: AurumColors.gold.withValues(alpha: 0.35),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -78,7 +78,7 @@ class _AiAnalysisScreenState extends ConsumerState<AiAnalysisScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AurumColors.positive.withOpacity(0.15),
+                            color: AurumColors.positive.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text('BULLISH', style: AurumTypography.label.copyWith(color: AurumColors.positive)),
@@ -120,7 +120,7 @@ class _AiAnalysisScreenState extends ConsumerState<AiAnalysisScreen> {
   }
 
   void _showMethodology(BuildContext context) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (_) => Padding(
         padding: const EdgeInsets.all(AurumSpacing.lg),

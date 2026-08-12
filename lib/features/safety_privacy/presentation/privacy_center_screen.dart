@@ -235,8 +235,8 @@ class AntiScamNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AurumCard(
-      color: AurumColors.warning.withOpacity(0.06),
-      borderColor: AurumColors.warning.withOpacity(0.25),
+      color: AurumColors.warning.withValues(alpha: 0.06),
+      borderColor: AurumColors.warning.withValues(alpha: 0.25),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

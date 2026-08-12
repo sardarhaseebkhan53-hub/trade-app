@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
@@ -11,9 +10,9 @@ class AiHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // In real app this would be a Riverpod provider fetching from backend
-    final fakeHistory = [
-      {'asset': 'BTC', 'query': 'Why is BTC bullish?', 'date': '2h ago'},
-      {'asset': 'ETH', 'query': 'What are the risks for ETH?', 'date': 'Yesterday'},
+    const fakeHistory = <({String asset, String query, String date})>[
+      (asset: 'BTC', query: 'Why is BTC bullish?', date: '2h ago'),
+      (asset: 'ETH', query: 'What are the risks for ETH?', date: 'Yesterday'),
     ];
 
     return Scaffold(
@@ -31,9 +30,9 @@ class AiHistoryScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${item['asset']} • ${item['query']}', style: AurumTypography.label),
+                Text('${item.asset} • ${item.query}', style: AurumTypography.label),
                 const SizedBox(height: 4),
-                Text(item['date'] as String, style: AurumTypography.caption),
+                Text(item.date, style: AurumTypography.caption),
               ],
             ),
           );

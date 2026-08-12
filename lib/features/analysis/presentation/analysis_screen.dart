@@ -210,7 +210,7 @@ class _RegimeCard extends StatelessWidget {
     final regime = _computeRegime(asset);
 
     return AurumCard(
-      borderColor: AurumColors.gold.withOpacity(0.3),
+      borderColor: AurumColors.gold.withValues(alpha: 0.3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -223,7 +223,7 @@ class _RegimeCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AurumColors.gold.withOpacity(0.15),
+                  color: AurumColors.gold.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -283,7 +283,14 @@ class _IndicatorsSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final service = const TechnicalAnalysisService();
+    if (prices.isEmpty) {
+      return const AurumEmptyState(
+        title: 'No indicator data',
+        message: 'Try another timeframe.',
+      );
+    }
+
+    const service = TechnicalAnalysisService();
     final result = service.analyze(prices);
 
     // Additional real indicators (lightweight)
@@ -375,7 +382,7 @@ class _TrendRow extends StatelessWidget {
           SizedBox(width: 100, child: Text(label, style: AurumTypography.caption)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
             child: Text(trend, style: AurumTypography.caption.copyWith(color: color, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(width: 8),
@@ -405,7 +412,7 @@ class _MultiIndicatorCard extends StatelessWidget {
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(color: AurumColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: AurumColors.gold.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
                 child: const Text('68/100', style: AurumTypography.label),
               ),
             ],

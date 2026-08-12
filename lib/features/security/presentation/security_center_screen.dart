@@ -98,7 +98,7 @@ class SecurityCenterScreen extends ConsumerWidget {
                 subtitle: enabled ? 'Enabled' : 'Disabled',
                 trailing: Switch(
                   value: enabled,
-                  activeColor: AurumColors.gold,
+                  activeThumbColor: AurumColors.gold,
                   onChanged: (val) async {
                     await biometric.setBiometricEnabled(val);
                     if (val) {
@@ -257,7 +257,7 @@ class _ActiveDeviceTile extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
                           decoration: BoxDecoration(
-                            color: AurumColors.positive.withOpacity(0.15),
+                            color: AurumColors.positive.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text('THIS DEVICE', style: AurumTypography.caption.copyWith(color: AurumColors.positive, fontSize: 9)),
@@ -319,7 +319,7 @@ class _SecurityEventTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
               decoration: BoxDecoration(
-                color: (isBlocked ? AurumColors.negative : AurumColors.positive).withOpacity(0.12),
+                color: (isBlocked ? AurumColors.negative : AurumColors.positive).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -429,7 +429,7 @@ Widget _buildAppLockSection(BuildContext context) {
                       ),
                       Switch(
                         value: enabled,
-                        activeColor: AurumColors.gold,
+                        activeThumbColor: AurumColors.gold,
                         onChanged: (val) async {
                           await lockService.setAppLockEnabled(val);
                           if (context.mounted) {
@@ -462,7 +462,7 @@ Widget _buildAppLockSection(BuildContext context) {
                               );
                             }
                           },
-                          selectedColor: AurumColors.gold.withOpacity(0.2),
+                          selectedColor: AurumColors.gold.withValues(alpha: 0.2),
                           labelStyle: AurumTypography.caption.copyWith(
                             color: selected ? AurumColors.gold : AurumColors.textPrimary,
                           ),

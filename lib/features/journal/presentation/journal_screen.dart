@@ -101,7 +101,7 @@ class _JournalScreenState extends State<JournalScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: e.result == 'WIN' ? AurumColors.positive.withOpacity(0.15) : AurumColors.negative.withOpacity(0.15),
+                              color: e.result == 'WIN' ? AurumColors.positive.withValues(alpha: 0.15) : AurumColors.negative.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(e.result, style: AurumTypography.caption.copyWith(
@@ -147,7 +147,7 @@ class _JournalScreenState extends State<JournalScreen> {
     final qtyCtrl = TextEditingController(text: '0.25');
     String strategy = 'Breakout';
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => Padding(
@@ -163,7 +163,7 @@ class _JournalScreenState extends State<JournalScreen> {
             TextField(controller: qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity')),
             const SizedBox(height: AurumSpacing.sm),
             DropdownButtonFormField<String>(
-              value: strategy,
+              initialValue: strategy,
               items: ['Breakout', 'Mean Reversion', 'Swing', 'Scalp'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (v) => strategy = v ?? strategy,
               decoration: const InputDecoration(labelText: 'Strategy'),

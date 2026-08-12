@@ -46,7 +46,7 @@ class LegalPoliciesScreen extends StatelessWidget {
   }
 
   void _showPolicy(BuildContext context, String title, String content) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AurumColors.surface,

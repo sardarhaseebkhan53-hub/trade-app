@@ -51,7 +51,7 @@ class _AurumAppState extends ConsumerState<AurumApp> with WidgetsBindingObserver
       // For simplicity, we navigate to login (which will fall back to biometric if enabled)
       // In a full build we would show an in-app lock modal with biometric.
       router.go('/login');
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future<void>.delayed(const Duration(milliseconds: 400));
       _lockShown = false;
     }
     await _appLock.recordActivity();

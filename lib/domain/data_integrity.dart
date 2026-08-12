@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 enum DataFreshness { live, delayed, stale, offline }
 
 class DataIntegrityResult {
@@ -45,11 +43,14 @@ class DataIntegrityService {
 
     final age = now.difference(lastUpdated);
 
+    final delayedAfter = Duration(
+      microseconds: maxAge.inMicroseconds ~/ 2,
+    );
     DataFreshness freshness;
-    if (age > const Duration(minutes: 15)) {
+    if (age > maxAge) {
       freshness = DataFreshness.stale;
-      issues.add('Data is stale (>15 min old)');
-    } else if (age > const Duration(minutes: 2)) {
+      issues.add('Data is older than the allowed freshness window');
+    } else if (age > delayedAfter) {
       freshness = DataFreshness.delayed;
     } else {
       freshness = DataFreshness.live;

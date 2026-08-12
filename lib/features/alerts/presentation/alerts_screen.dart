@@ -60,7 +60,7 @@ class AlertsScreen extends ConsumerWidget {
     final priceCtrl = TextEditingController();
     AlertCondition condition = AlertCondition.above;
 
-    await showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(

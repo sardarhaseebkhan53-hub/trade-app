@@ -63,7 +63,7 @@ class _NotificationCard extends StatelessWidget {
           borderRadius: AurumRadius.card,
           child: Container(
             padding: const EdgeInsets.all(AurumSpacing.md),
-            decoration: BoxDecoration(border: Border.all(color: item.isRead ? AurumColors.border : AurumColors.gold.withOpacity(0.38)), borderRadius: AurumRadius.card),
+            decoration: BoxDecoration(border: Border.all(color: item.isRead ? AurumColors.border : AurumColors.gold.withValues(alpha: 0.38)), borderRadius: AurumRadius.card),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
               Container(width: 36, height: 36, decoration: BoxDecoration(color: AurumColors.ink, borderRadius: AurumRadius.control), child: Icon(icon, color: AurumColors.gold, size: 19)),
               const SizedBox(width: AurumSpacing.sm),

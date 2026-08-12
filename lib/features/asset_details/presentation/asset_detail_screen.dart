@@ -232,8 +232,8 @@ class _RiskDisclaimer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AurumCard(
-      color: AurumColors.warning.withOpacity(0.06),
-      borderColor: AurumColors.warning.withOpacity(0.3),
+      color: AurumColors.warning.withValues(alpha: 0.06),
+      borderColor: AurumColors.warning.withValues(alpha: 0.3),
       child: const Text(
         'Analysis is for informational purposes only. Markets are volatile.',
         style: AurumTypography.caption,

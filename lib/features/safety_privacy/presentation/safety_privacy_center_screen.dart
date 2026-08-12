@@ -141,7 +141,7 @@ class _SafetyPrivacyCenterScreenState extends State<SafetyPrivacyCenterScreen> {
   }
 
   void _showDisclosure(BuildContext context, String title, String content) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AurumColors.surface,

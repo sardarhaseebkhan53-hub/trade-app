@@ -118,7 +118,7 @@ class _ProfessionalPainter extends CustomPainter {
     }
 
     // Volume bars (demo)
-    final volPaint = Paint()..color = AurumColors.gold.withOpacity(0.2);
+    final volPaint = Paint()..color = AurumColors.gold.withValues(alpha: 0.2);
     for (int i = 0; i < points.length; i += 2) {
       final x = (i / (points.length - 1)) * size.width;
       canvas.drawRect(Rect.fromLTWH(x, size.height * 0.82, 2.5, size.height * 0.14), volPaint);
