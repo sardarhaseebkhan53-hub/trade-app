@@ -71,23 +71,23 @@ The product problem is not “we have no engine.” It is: **the engine is hidde
 
 ## 2. New product vision
 
-**AURUM TERMINAL** is a pocket market-intelligence desk.
+**AURUM POCKET BROKER** is a broker desk that fits in one hand.
 
-It should feel like:
+It should feel like **Zerodha Kite / Webull / a compact dealing ticket** — not a magazine, not a desktop terminal, not a luxury brochure.
 
 ```
-professional trading terminal
+pocket broker quotes
         ×
-modern mobile trading app
+one-thumb chart ticket
         ×
-live market monitor
+live tape
         ×
-AI market analyst
+BUY / WAIT / SELL analytical state
         ×
-personal trading intelligence
+AI that explains the ticket
 ```
 
-It is **not** an exchange. It does **not** place orders, hold coins, or promise outcomes.
+It is **not** an exchange. The BUY and SELL controls open the **why**, they do **not** place orders, hold coins, or move money.
 
 ### The first-second promise
 
@@ -106,7 +106,7 @@ When the user opens AURUM they must immediately know:
 
 ### One sentence
 
-> AURUM watches the market, scores the evidence, and explains the signal — on a phone, in real time, without pretending to be a broker.
+> AURUM feels like a pocket broker: live quotes, a chart ticket, and a BUY / WAIT / SELL state you can tap to see the evidence — without ever placing an order.
 
 ### Brand character
 
@@ -194,19 +194,19 @@ This is an **automated analytical assessment**, never advice, never a win-rate, 
 
 ## 4. New navigation structure
 
-Five primary destinations. No sixth tab. No 10-item dock.
+Pocket-broker dock. Five destinations. The **center tab is TRADE** (chart + ticket), like a real broker app.
 
 ```text
-HOME     MARKETS     AI     WATCH     PORTFOLIO
+WATCH     MARKETS     TRADE     PORTFOLIO     MORE
 ```
 
 | Tab | Job |
 | --- | --- |
-| **HOME** | Live briefing: market pulse, AI brain, top signal, movers, watchlist strip. |
-| **MARKETS** | Universe, heatmap entry, search, gainers/losers/volume/trending. |
-| **AI** | Market analyst workspace (brief + ask + history). Not a floating chat bubble. |
-| **WATCH** | Intelligent watchlist: price, trend, signal, strength, volatility. |
-| **PORTFOLIO** | Manual holdings analytics. AURUM never custodies. |
+| **WATCH** | Default home. Broker quote blotter: last, change, %, signal. |
+| **MARKETS** | Universe, gainers/losers/volume, heatmap, scanner entry. |
+| **TRADE** | Full-bleed chart + BUY / WAIT / SELL analytical ticket. |
+| **PORTFOLIO** | Manual positions blotter + P/L. No custody. |
+| **MORE** | AI analyst, alerts, news, journal, profile, security. |
 
 ### Secondary (search, More, sheets, deep links)
 
@@ -306,11 +306,17 @@ Notifications: on/off, priority, quiet hours, asset selection. No spam.
 
 ## 6. New premium UI design direction
 
-### Name: AURUM TERMINAL
+### Name: AURUM POCKET BROKER
 
-Luxury comes from **precision and live data**, not from gold gradients.
+This revision drops the editorial “AI magazine” layout. The phone must feel like a **dealing app**:
 
-Think: a dark metal instrument panel. Champagne hairlines. Tabular prices that do not jump. One accent. Controlled bull / bear. Never a carnival.
+- Quote blotter first, not greeting cards
+- Sticky symbol + last + %
+- Chart owns the TRADE tab
+- Three-button ticket: **BUY · WAIT · SELL** (current state highlighted)
+- Tiny caption on every ticket: `Analytical · not an order`
+- Dense 52–56 dp rows, tabular last / chg / %
+- Gold only on the wordmark and selected tab — green/red do the market work
 
 ### Color system (new tokens — not the old Obsidian set)
 
@@ -505,12 +511,12 @@ I have **not** started the rebuild.
 
 Please review:
 
-- [ ] Product vision (AURUM TERMINAL, crypto, phone-first)
-- [ ] Five-tab navigation: Home / Markets / AI / Watch / Portfolio
-- [ ] BUY / SELL / WAIT / STRONG variants with transparent scoring
-- [ ] AI as analyst on top of the engine, not a chatbot toy
-- [ ] New metal-on-void visual system
-- [ ] Eight mobile mockups
+- [ ] Product vision (AURUM POCKET BROKER — quotes + chart ticket)
+- [ ] Five-tab dock: Watch / Markets / TRADE / Portfolio / More
+- [ ] BUY / WAIT / SELL ticket (analytical, never an order)
+- [ ] AI explains the ticket from More, not a chatbot toy
+- [ ] Dense broker blotter visual system
+- [ ] Eight pocket-broker mobile mockups
 - [ ] KEEP / REFACTOR / REPLACE / REMOVE of existing code
 - [ ] Roadmap only after approval
 
