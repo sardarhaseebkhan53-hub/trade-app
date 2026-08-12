@@ -187,11 +187,11 @@ class AurumBottomNav extends StatelessWidget {
   final ValueChanged<int> onDestinationSelected;
 
   static const _items = <({IconData icon, String label})>[
-    (icon: Icons.home_outlined, label: 'Overview'),
+    (icon: Icons.home_outlined, label: 'Home'),
     (icon: Icons.bar_chart_rounded, label: 'Markets'),
-    (icon: Icons.insights_outlined, label: 'Signals'),
-    (icon: Icons.auto_awesome_outlined, label: 'AI Desk'),
-    (icon: Icons.person_outline_rounded, label: 'Profile'),
+    (icon: Icons.analytics_outlined, label: 'Analysis'),
+    (icon: Icons.auto_awesome_outlined, label: 'AI'),
+    (icon: Icons.account_balance_wallet_outlined, label: 'Portfolio'),
   ];
 
   @override

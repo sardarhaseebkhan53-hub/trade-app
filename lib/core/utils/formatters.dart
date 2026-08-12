@@ -1,15 +1,18 @@
 import 'package:intl/intl.dart';
 
-abstract final class AurumFormatters {
-  static String price(double value) {
-    final digits = value >= 1000 ? 2 : value >= 1 ? 2 : 4;
-    return NumberFormat.currency(symbol: '\$', decimalDigits: digits).format(value);
+class AurumFormatters {
+  static final _price = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+  static final _compact = NumberFormat.compactCurrency(symbol: '\$', decimalDigits: 1);
+  static final _percent = NumberFormat('+#0.00%;-0.00%');
+
+  static String price(double value) => _price.format(value);
+  static String compactCurrency(double value) => _compact.format(value);
+  static String percent(double value) => _percent.format(value / 100);
+
+  static String compactDate(DateTime dt) {
+    final now = DateTime.now();
+    if (now.difference(dt).inMinutes < 2) return 'just now';
+    if (now.difference(dt).inHours < 24) return DateFormat.Hm().format(dt);
+    return DateFormat.MMMd().format(dt);
   }
-
-  static String compactCurrency(double value) =>
-      NumberFormat.compactCurrency(symbol: '\$', decimalDigits: 2).format(value);
-
-  static String change(double value) => '${value >= 0 ? '+' : ''}${value.toStringAsFixed(2)}%';
-
-  static String compactDate(DateTime value) => DateFormat('MMM d · HH:mm').format(value.toLocal());
 }
