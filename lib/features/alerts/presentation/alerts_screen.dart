@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
@@ -17,87 +16,148 @@ class AlertsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alerts = ref.watch(alertsProvider);
+
     return Scaffold(
       appBar: AurumAppBar(
-        title: 'Price alerts',
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Icons.arrow_back_rounded)),
-        actions: <Widget>[
+        title: 'Price Alerts',
+        actions: [
           IconButton(
-            tooltip: 'Create price alert',
-            onPressed: () => _showCreateAlert(context, ref),
             icon: const Icon(Icons.add_alert_outlined, color: AurumColors.goldSoft),
+            onPressed: () => _showCreateAlert(context, ref),
           ),
         ],
       ),
       body: alerts.when(
-        loading: () => const LoadingList(count: 3),
-        error: (_, __) => AurumErrorState(title: 'Alerts unavailable', message: 'Sign in and check your connection to manage price alerts.', onRetry: () => ref.invalidate(alertsProvider)),
-        data: (List<PriceAlert> values) {
-          if (values.isEmpty) {
-            return AurumEmptyState(title: 'No price alerts yet', message: 'Create an above or below alert for a saved market level.', icon: Icons.add_alert_outlined, actionLabel: 'Create alert', onAction: () => _showCreateAlert(context, ref));
+        data: (list) {
+          if (list.isEmpty) {
+            return AurumEmptyState(
+              title: 'No alerts yet',
+              message: 'Create price alerts for key levels.',
+              icon: Icons.add_alert_outlined,
+              actionLabel: 'Create alert',
+              onAction: () => _showCreateAlert(context, ref),
+            );
           }
           return ListView.separated(
             padding: const EdgeInsets.all(AurumSpacing.lg),
-            itemCount: values.length,
+            itemCount: list.length,
             separatorBuilder: (_, __) => const SizedBox(height: AurumSpacing.sm),
-            itemBuilder: (BuildContext context, int index) => _AlertCard(alert: values[index]),
+            itemBuilder: (_, i) => _AlertCard(alert: list[i], ref: ref),
           );
         },
+        loading: () => const LoadingList(count: 4),
+        error: (_, __) => AurumErrorState(
+          title: 'Alerts unavailable',
+          message: 'Please try again.',
+          onRetry: () => ref.invalidate(alertsProvider),
+        ),
       ),
     );
   }
 
   Future<void> _showCreateAlert(BuildContext context, WidgetRef ref) async {
-    final assetController = TextEditingController();
-    final priceController = TextEditingController();
-    var condition = AlertCondition.above;
-    await showModalBottomSheet<void>(
+    final assetCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    AlertCondition condition = AlertCondition.above;
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (BuildContext context) => Padding(
-        padding: EdgeInsets.fromLTRB(AurumSpacing.lg, AurumSpacing.lg, AurumSpacing.lg, MediaQuery.viewInsetsOf(context).bottom + AurumSpacing.lg),
-        child: StatefulBuilder(builder: (BuildContext context, StateSetter setSheetState) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-          const Text('Create price alert', style: AurumTypography.h2),
-          const SizedBox(height: AurumSpacing.md),
-          TextField(controller: assetController, textCapitalization: TextCapitalization.none, decoration: const InputDecoration(hintText: 'Asset ID, for example bitcoin')),
-          const SizedBox(height: AurumSpacing.sm),
-          TextField(controller: priceController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(hintText: 'Target price in USD')),
-          const SizedBox(height: AurumSpacing.sm),
-          SegmentedButton<AlertCondition>(segments: const <ButtonSegment<AlertCondition>>[
-            ButtonSegment<AlertCondition>(value: AlertCondition.above, label: Text('Above')),
-            ButtonSegment<AlertCondition>(value: AlertCondition.below, label: Text('Below')),
-          ], selected: <AlertCondition>{condition}, onSelectionChanged: (Set<AlertCondition> value) => setSheetState(() => condition = value.first)),
-          const SizedBox(height: AurumSpacing.lg),
-          AurumButton(label: 'Save alert', onPressed: () async {
-            final assetId = assetController.text.trim().toLowerCase();
-            final target = double.tryParse(priceController.text.trim());
-            if (assetId.isEmpty || target == null || target <= 0) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid asset ID and positive target price.')));
-              return;
-            }
-            await ref.read(alertRepositoryProvider).createAlert(assetId: assetId, condition: condition, targetPrice: target);
-            ref.invalidate(alertsProvider);
-            if (context.mounted) context.pop();
-          }),
-        ])),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Padding(
+          padding: EdgeInsets.only(
+            left: AurumSpacing.lg,
+            right: AurumSpacing.lg,
+            top: AurumSpacing.lg,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AurumSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Create price alert', style: AurumTypography.h3),
+              const SizedBox(height: AurumSpacing.md),
+              TextField(
+                controller: assetCtrl,
+                decoration: const InputDecoration(hintText: 'Asset ID (e.g. bitcoin)'),
+              ),
+              const SizedBox(height: AurumSpacing.sm),
+              TextField(
+                controller: priceCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(hintText: 'Target price (USD)'),
+              ),
+              const SizedBox(height: AurumSpacing.sm),
+              SegmentedButton<AlertCondition>(
+                segments: const [
+                  ButtonSegment(value: AlertCondition.above, label: Text('Above')),
+                  ButtonSegment(value: AlertCondition.below, label: Text('Below')),
+                ],
+                selected: {condition},
+                onSelectionChanged: (s) => setState(() => condition = s.first),
+              ),
+              const SizedBox(height: AurumSpacing.lg),
+              AurumButton(
+                label: 'Create alert',
+                onPressed: () async {
+                  final asset = assetCtrl.text.trim();
+                  final price = double.tryParse(priceCtrl.text.trim());
+                  if (asset.isNotEmpty && price != null && price > 0) {
+                    await ref.read(alertRepositoryProvider).createAlert(
+                      assetId: asset.toLowerCase(),
+                      condition: condition,
+                      targetPrice: price,
+                    );
+                    ref.invalidate(alertsProvider);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
-    assetController.dispose();
-    priceController.dispose();
   }
 }
 
-class _AlertCard extends ConsumerWidget {
-  const _AlertCard({required this.alert});
+class _AlertCard extends StatelessWidget {
+  const _AlertCard({required this.alert, required this.ref, super.key});
   final PriceAlert alert;
+  final WidgetRef ref;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => AurumCard(
-    child: Row(children: <Widget>[
-      Container(width: 38, height: 38, alignment: Alignment.center, decoration: const BoxDecoration(color: AurumColors.surfaceElevated, shape: BoxShape.circle), child: Icon(alert.condition == AlertCondition.above ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, color: AurumColors.gold)),
-      const SizedBox(width: AurumSpacing.sm),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[Text(alert.assetId.toUpperCase(), style: AurumTypography.h3), const SizedBox(height: AurumSpacing.xxs), Text('${alert.condition.name} ${AurumFormatters.price(alert.targetPrice)} • ${alert.status.name}', style: AurumTypography.body)])),
-      IconButton(tooltip: 'Delete alert', onPressed: () async { await ref.read(alertRepositoryProvider).deleteAlert(alert.id); ref.invalidate(alertsProvider); }, icon: const Icon(Icons.delete_outline_rounded, color: AurumColors.negative)),
-    ]),
-  );
+  Widget build(BuildContext context) {
+    return AurumCard(
+      child: Row(
+        children: [
+          Icon(
+            alert.condition == AlertCondition.above ? Icons.arrow_upward : Icons.arrow_downward,
+            color: AurumColors.gold,
+          ),
+          const SizedBox(width: AurumSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(alert.assetId.toUpperCase(), style: AurumTypography.h3),
+                Text(
+                  '${alert.condition.name} ${AurumFormatters.price(alert.targetPrice)}',
+                  style: AurumTypography.body,
+                ),
+              ],
+            ),
+          ),
+          Text(alert.status.name, style: AurumTypography.caption),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: AurumColors.negative),
+            onPressed: () async {
+              await ref.read(alertRepositoryProvider).deleteAlert(alert.id);
+              ref.invalidate(alertsProvider);
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -55,6 +55,12 @@ class RemoteAuthRepository implements AuthRepository {
     }
   }
 
+  @override
+  Future<UserSession> signInWithGoogle(String idToken) async {
+    final data = await _client.post('/auth/google', body: {'idToken': idToken}, authenticated: false);
+    return _saveSession(data);
+  }
+
   Future<UserSession> _saveSession(Map<String, Object?> data) async {
     final profile = _profile(BackendJson.map(data['user']));
     final session = _session(BackendJson.map(data['session']), profile);

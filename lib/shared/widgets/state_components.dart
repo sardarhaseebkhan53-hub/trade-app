@@ -6,9 +6,10 @@ import '../../app/theme/aurum_typography.dart';
 import 'aurum_primitives.dart';
 
 class LoadingSkeleton extends StatefulWidget {
-  const LoadingSkeleton({super.key, this.height = 72, this.width = double.infinity});
+  const LoadingSkeleton({required this.height, super.key, this.width});
+
   final double height;
-  final double width;
+  final double? width;
 
   @override
   State<LoadingSkeleton> createState() => _LoadingSkeletonState();
@@ -18,7 +19,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1400),
+    duration: const Duration(milliseconds: 1200),
   )..repeat(reverse: true);
 
   @override
@@ -29,35 +30,34 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
 
   @override
   Widget build(BuildContext context) {
-    final disableMotion = MediaQuery.of(context).disableAnimations;
-    if (disableMotion) return _buildBox(0.65);
     return AnimatedBuilder(
       animation: _controller,
-      builder: (BuildContext context, Widget? child) => _buildBox(0.45 + (_controller.value * 0.28)),
+      builder: (_, __) => Container(
+        height: widget.height,
+        width: widget.width,
+        decoration: BoxDecoration(
+          color: AurumColors.surfaceElevated.withOpacity(0.6 + _controller.value * 0.3),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
     );
   }
-
-  Widget _buildBox(double opacity) => Container(
-        width: widget.width,
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: AurumColors.surfaceElevated.withOpacity(opacity),
-          borderRadius: BorderRadius.circular(12),
-        ),
-      );
 }
 
 class LoadingList extends StatelessWidget {
-  const LoadingList({super.key, this.count = 4});
+  const LoadingList({required this.count, super.key, this.itemHeight = 76});
+
   final int count;
+  final double itemHeight;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AurumSpacing.lg),
       itemCount: count,
       separatorBuilder: (_, __) => const SizedBox(height: AurumSpacing.sm),
-      itemBuilder: (_, __) => const LoadingSkeleton(height: 82),
+      itemBuilder: (_, __) => LoadingSkeleton(height: itemHeight),
     );
   }
 }
@@ -85,15 +85,23 @@ class AurumEmptyState extends StatelessWidget {
         padding: const EdgeInsets.all(AurumSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(icon, color: AurumColors.gold, size: 36),
-            const SizedBox(height: AurumSpacing.md),
-            Text(title, textAlign: TextAlign.center, style: AurumTypography.h3),
+          children: [
+            Icon(icon, size: 52, color: AurumColors.textTertiary),
+            const SizedBox(height: AurumSpacing.lg),
+            Text(title, style: AurumTypography.h3, textAlign: TextAlign.center),
             const SizedBox(height: AurumSpacing.xs),
-            Text(message, textAlign: TextAlign.center, style: AurumTypography.body),
-            if (actionLabel != null) ...<Widget>[
-              const SizedBox(height: AurumSpacing.lg),
-              AurumButton(label: actionLabel!, onPressed: onAction, expand: false),
+            Text(
+              message,
+              style: AurumTypography.body,
+              textAlign: TextAlign.center,
+            ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: AurumSpacing.xl),
+              AurumButton(
+                label: actionLabel!,
+                variant: AurumButtonVariant.secondary,
+                onPressed: onAction,
+              ),
             ],
           ],
         ),
@@ -106,13 +114,13 @@ class AurumErrorState extends StatelessWidget {
   const AurumErrorState({
     required this.title,
     required this.message,
-    required this.onRetry,
     super.key,
+    this.onRetry,
   });
 
   final String title;
   final String message;
-  final VoidCallback onRetry;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -121,19 +129,16 @@ class AurumErrorState extends StatelessWidget {
         padding: const EdgeInsets.all(AurumSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(Icons.cloud_off_outlined, color: AurumColors.warning, size: 36),
-            const SizedBox(height: AurumSpacing.md),
-            Text(title, textAlign: TextAlign.center, style: AurumTypography.h3),
-            const SizedBox(height: AurumSpacing.xs),
-            Text(message, textAlign: TextAlign.center, style: AurumTypography.body),
+          children: [
+            const Icon(Icons.error_outline_rounded, size: 48, color: AurumColors.negative),
             const SizedBox(height: AurumSpacing.lg),
-            AurumButton(
-              label: 'Retry',
-              icon: Icons.refresh_rounded,
-              onPressed: onRetry,
-              expand: false,
-            ),
+            Text(title, style: AurumTypography.h3, textAlign: TextAlign.center),
+            const SizedBox(height: AurumSpacing.sm),
+            Text(message, style: AurumTypography.body, textAlign: TextAlign.center),
+            if (onRetry != null) ...[
+              const SizedBox(height: AurumSpacing.xl),
+              AurumButton(label: 'Try again', onPressed: onRetry),
+            ],
           ],
         ),
       ),

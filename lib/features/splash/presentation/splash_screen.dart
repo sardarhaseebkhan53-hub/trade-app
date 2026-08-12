@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
-import '../../../shared/models/user_data_models.dart';
+import '../../../core/storage/biometric_service.dart';
+import '../../../core/storage/first_launch_store.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 
@@ -16,72 +17,86 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 780),
-  )..forward();
-  var _routed = false;
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _decideNextRoute();
+  }
+
+  Future<void> _decideNextRoute() async {
+    await Future.delayed(const Duration(milliseconds: 1350));
+
+    if (!mounted) return;
+
+    final firstLaunchStore = FirstLaunchStore();
+    final hasCompletedSafety = await firstLaunchStore.hasCompletedSafetyFlow();
+
+    if (!hasCompletedSafety) {
+      if (mounted) context.go('/safety-privacy');
+      return;
+    }
+
+    final auth = ref.read(authControllerProvider).valueOrNull;
+
+    if (auth?.isAuthenticated == true) {
+      // Try biometric unlock for returning users
+      final biometric = ref.read(biometricServiceProvider);
+      final enabled = await biometric.isBiometricEnabled();
+      final available = await biometric.isBiometricAvailable();
+
+      if (enabled && available && mounted) {
+        final success = await biometric.authenticate(reason: 'Unlock AURUM');
+        if (success && mounted) {
+          context.go('/home');
+          return;
+        } else if (mounted) {
+          // Biometric failed → fallback to password
+          context.go('/login');
+          return;
+        }
+      }
+      context.go('/home');
+    } else {
+      context.go('/onboarding');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authControllerProvider);
-    ref.listen<AsyncValue<AuthState>>(authControllerProvider, (_, AsyncValue<AuthState> next) {
-      final state = next.valueOrNull;
-      if (state == null || _routed) return;
-      _routed = true;
-      if (state.isAuthenticated) {
-        context.go('/home');
-      } else {
-        context.go('/onboarding');
-      }
-    });
-    final reduceMotion = MediaQuery.of(context).disableAnimations;
     return Scaffold(
       backgroundColor: AurumColors.ink,
       body: SafeArea(
         child: Center(
-          child: FadeTransition(
-            opacity: reduceMotion
-                ? const AlwaysStoppedAnimation<double>(1)
-                : CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AurumColors.gold, width: 1.3),
-                  ),
-                  child: const Icon(Icons.insights_outlined, color: AurumColors.goldSoft, size: 34),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 78,
+                height: 78,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AurumColors.gold, width: 1.5),
                 ),
-                const SizedBox(height: AurumSpacing.xl),
-                const AurumBrand(),
-                const SizedBox(height: AurumSpacing.sm),
-                Text('MARKET INTELLIGENCE', style: AurumTypography.caption.copyWith(letterSpacing: 2.8, color: AurumColors.textSecondary)),
-                const SizedBox(height: AurumSpacing.xxxl),
-                const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 1.8, color: AurumColors.gold)),
-                const SizedBox(height: AurumSpacing.sm),
-                Text(
-                  auth.valueOrNull?.status == AuthStatus.sessionExpired
-                      ? 'Your session has ended'
-                      : 'Restoring your secure workspace',
-                  style: AurumTypography.caption,
-                ),
-              ],
-            ),
+                child: const Icon(Icons.insights_outlined, color: AurumColors.goldSoft, size: 36),
+              ),
+              const SizedBox(height: AurumSpacing.xl),
+              const AurumBrand(),
+              const SizedBox(height: AurumSpacing.sm),
+              Text(
+                'MARKET INTELLIGENCE',
+                style: AurumTypography.caption.copyWith(letterSpacing: 3.2, color: AurumColors.textSecondary),
+              ),
+              const SizedBox(height: AurumSpacing.xxxl),
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AurumColors.gold),
+              ),
+            ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 }

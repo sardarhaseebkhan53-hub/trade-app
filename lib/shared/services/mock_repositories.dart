@@ -346,6 +346,13 @@ class MockAuthRepository implements AuthRepository {
     _profile = const AurumProfile(name: 'Guest analyst', email: '', isGuest: true, currency: 'USD', reducedMotion: false);
   }
 
+  @override
+  Future<UserSession> signInWithGoogle(String idToken) async {
+    await Future<void>.delayed(const Duration(milliseconds: 550));
+    _profile = const AurumProfile(name: 'Google User', email: 'google.user@example.com', isGuest: false, currency: 'USD', reducedMotion: false);
+    return _session(_profile);
+  }
+
   UserSession _session(AurumProfile profile) => UserSession(
     profile: profile,
     accessToken: 'mock-access-token',

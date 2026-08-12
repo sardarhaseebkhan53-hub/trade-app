@@ -5,9 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
-import '../../../shared/models/user_data_models.dart';
+import '../../../core/storage/biometric_service.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
+import '../../../shared/widgets/google_sign_in_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -21,6 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   var _obscurePassword = true;
+  var _isLoading = false;
 
   @override
   void dispose() {
@@ -29,55 +31,121 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+
+    try {
+      await ref.read(authControllerProvider.notifier).signIn(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+
+      final authState = ref.read(authControllerProvider).valueOrNull;
+      if (authState?.isAuthenticated == true && mounted) {
+        await _maybeEnableBiometric();
+        if (mounted) context.go('/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      final authState = ref.read(authControllerProvider).valueOrNull;
+      if (authState?.isAuthenticated == true && mounted) {
+        await _maybeEnableBiometric();
+        if (mounted) context.go('/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google sign-in failed')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _maybeEnableBiometric() async {
+    final biometric = BiometricService();
+    final available = await biometric.isBiometricAvailable();
+    if (!available || !mounted) return;
+
+    final enable = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AurumColors.surface,
+        title: const Text('Secure your account'),
+        content: const Text('Would you like to use fingerprint or face authentication for faster future logins?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enable')),
+        ],
+      ),
+    );
+
+    if (enable == true) {
+      await biometric.setBiometricEnabled(true);
+      // Store a placeholder token that biometric can unlock
+      await biometric.storeBiometricToken('biometric-session-token');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authControllerProvider);
-    final isAuthenticating = auth.isLoading || auth.valueOrNull?.status == AuthStatus.authenticating;
     return Scaffold(
-      appBar: AppBar(backgroundColor: AurumColors.canvas, surfaceTintColor: Colors.transparent),
+      appBar: AppBar(backgroundColor: AurumColors.canvas, elevation: 0),
       body: SafeArea(
-        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AurumSpacing.lg),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
+              children: [
                 const AurumBrand(compact: true),
                 const SizedBox(height: AurumSpacing.xxxl),
                 Text('Welcome back', style: AurumTypography.h1),
                 const SizedBox(height: AurumSpacing.xs),
-                const Text('Sign in to sync your watchlist, analysis history and preferences.', style: AurumTypography.bodyLarge),
+                Text('Sign in to access your market intelligence workspace.', style: AurumTypography.bodyLarge),
                 const SizedBox(height: AurumSpacing.xxl),
+
                 Text('Email', style: AurumTypography.label),
                 const SizedBox(height: AurumSpacing.xs),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  autofillHints: const <String>[AutofillHints.email],
                   decoration: const InputDecoration(hintText: 'you@example.com'),
-                  validator: _validateEmail,
+                  validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                 ),
                 const SizedBox(height: AurumSpacing.md),
+
                 Text('Password', style: AurumTypography.label),
                 const SizedBox(height: AurumSpacing.xs),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  autofillHints: const <String>[AutofillHints.password],
                   decoration: InputDecoration(
                     hintText: 'Enter your password',
                     suffixIcon: IconButton(
-                      tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (String? value) => value == null || value.length < 8 ? 'Use at least 8 characters.' : null,
+                  validator: (v) => (v == null || v.length < 6) ? 'Password must be at least 6 characters' : null,
                 ),
+
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -85,45 +153,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Text('Forgot password?', style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)),
                   ),
                 ),
-                if (auth.hasError) ...<Widget>[
-                  Text('Unable to sign in. Please try again.', style: AurumTypography.body.copyWith(color: AurumColors.negative)),
-                  const SizedBox(height: AurumSpacing.sm),
-                ],
+
+                const SizedBox(height: AurumSpacing.lg),
                 AurumButton(
-                  label: 'Sign in',
-                  isLoading: isAuthenticating,
-                  onPressed: isAuthenticating ? null : _submit,
+                  label: 'Log in',
+                  isLoading: _isLoading,
+                  onPressed: _isLoading ? null : _submit,
                 ),
-                const SizedBox(height: AurumSpacing.sm),
-                AurumButton(
-                  label: 'Continue as guest',
-                  variant: AurumButtonVariant.secondary,
-                  onPressed: () => context.go('/home'),
+
+                const SizedBox(height: AurumSpacing.xl),
+                const Row(children: [
+                  Expanded(child: Divider()),
+                  Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('OR')),
+                  Expanded(child: Divider()),
+                ]),
+                const SizedBox(height: AurumSpacing.lg),
+
+                GoogleSignInButton(
+                  isLoading: _isLoading,
+                  onPressed: _isLoading ? null : _signInWithGoogle,
                 ),
+
                 const SizedBox(height: AurumSpacing.xl),
                 Center(
                   child: TextButton(
                     onPressed: () => context.go('/register'),
-                    child: Text('New to AURUM? Create an account', style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)),
+                    child: Text("Don't have an account? Create Account", style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)),
                   ),
                 ),
-                const SizedBox(height: AurumSpacing.md),
-                const Center(child: Text('Demo authentication UI — no real credentials are sent.', textAlign: TextAlign.center, style: AurumTypography.caption)),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    await ref.read(authControllerProvider.notifier).signIn(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
-    if (mounted && ref.read(authControllerProvider).valueOrNull?.isAuthenticated == true) context.go('/home');
   }
 }
 
@@ -141,6 +204,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   var _acceptedTerms = false;
+  var _obscure = true;
+  var _isLoading = false;
 
   @override
   void dispose() {
@@ -151,73 +216,118 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || !_acceptedTerms) {
+      if (!_acceptedTerms) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please accept the Terms & Privacy Policy')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authControllerProvider.notifier).register(
+            name: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+      if (mounted) context.go('/home');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Registration failed')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _googleSignUp() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      if (mounted) context.go('/home');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authControllerProvider);
-    final isAuthenticating = auth.isLoading || auth.valueOrNull?.status == AuthStatus.authenticating;
     return Scaffold(
-      appBar: AppBar(backgroundColor: AurumColors.canvas, surfaceTintColor: Colors.transparent),
+      appBar: AppBar(backgroundColor: AurumColors.canvas, elevation: 0),
       body: SafeArea(
-        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AurumSpacing.lg),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
+              children: [
                 const AurumBrand(compact: true),
                 const SizedBox(height: AurumSpacing.xxl),
-                Text('Create your workspace', style: AurumTypography.h1),
-                const SizedBox(height: AurumSpacing.xs),
-                const Text('Keep your research preferences and saved assets in one place.', style: AurumTypography.bodyLarge),
+                Text('Create your AURUM account', style: AurumTypography.h1),
+                const SizedBox(height: AurumSpacing.sm),
+                Text('Join the premium market intelligence platform.', style: AurumTypography.bodyLarge),
                 const SizedBox(height: AurumSpacing.xxl),
-                _field(label: 'Name', controller: _nameController, hint: 'Your name', validator: (String? value) => value == null || value.trim().isEmpty ? 'Enter your name.' : null),
-                _field(label: 'Email', controller: _emailController, hint: 'you@example.com', keyboardType: TextInputType.emailAddress, validator: _validateEmail),
-                _field(label: 'Password', controller: _passwordController, hint: '12+ characters, upper/lowercase and number', obscure: true, validator: _validateRegistrationPassword),
-                _field(label: 'Confirm password', controller: _confirmController, hint: 'Repeat password', obscure: true, validator: (String? value) => value != _passwordController.text ? 'Passwords do not match.' : null),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: _acceptedTerms,
-                  activeColor: AurumColors.gold,
-                  checkColor: AurumColors.ink,
-                  onChanged: (bool? value) => setState(() => _acceptedTerms = value ?? false),
-                  title: const Text('I understand AURUM provides analysis, not financial advice.', style: AurumTypography.body),
+
+                Text('Full Name', style: AurumTypography.label),
+                TextFormField(controller: _nameController, decoration: const InputDecoration(hintText: 'Your full name'), validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
+                const SizedBox(height: AurumSpacing.md),
+
+                Text('Email', style: AurumTypography.label),
+                TextFormField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'you@example.com'), validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null),
+                const SizedBox(height: AurumSpacing.md),
+
+                Text('Password', style: AurumTypography.label),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscure,
+                  decoration: InputDecoration(
+                    hintText: 'Create a strong password',
+                    suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined), onPressed: () => setState(() => _obscure = !_obscure)),
+                  ),
+                  validator: (v) => (v == null || v.length < 8) ? 'At least 8 characters' : null,
                 ),
-                if (auth.hasError) ...<Widget>[
-                  Text('Unable to create an account. Please try again.', style: AurumTypography.body.copyWith(color: AurumColors.negative)),
-                  const SizedBox(height: AurumSpacing.sm),
-                ],
-                AurumButton(label: 'Create account', isLoading: isAuthenticating, onPressed: isAuthenticating ? null : _submit),
+                const SizedBox(height: AurumSpacing.md),
+
+                Text('Confirm Password', style: AurumTypography.label),
+                TextFormField(
+                  controller: _confirmController,
+                  obscureText: _obscure,
+                  decoration: const InputDecoration(hintText: 'Repeat password'),
+                  validator: (v) => v != _passwordController.text ? 'Passwords do not match' : null,
+                ),
+
+                const SizedBox(height: AurumSpacing.md),
+                CheckboxListTile(
+                  value: _acceptedTerms,
+                  onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
+                  title: const Text('I agree to the Terms of Service and Privacy Policy', style: AurumTypography.body),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+
                 const SizedBox(height: AurumSpacing.lg),
-                Center(child: TextButton(onPressed: () => context.go('/login'), child: Text('Already have an account? Sign in', style: AurumTypography.label.copyWith(color: AurumColors.goldSoft)))),
+                AurumButton(label: 'Create Account', isLoading: _isLoading, onPressed: _isLoading ? null : _submit),
+
+                const SizedBox(height: AurumSpacing.xl),
+                const Row(children: [Expanded(child: Divider()), Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('OR')), Expanded(child: Divider())]),
+                const SizedBox(height: AurumSpacing.lg),
+
+                GoogleSignInButton(onPressed: _isLoading ? null : _googleSignUp, isLoading: _isLoading),
+
+                const SizedBox(height: AurumSpacing.xl),
+                Center(
+                  child: TextButton(onPressed: () => context.go('/login'), child: Text('Already have an account? Log in', style: AurumTypography.label.copyWith(color: AurumColors.goldSoft))),
+                ),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  Widget _field({required String label, required TextEditingController controller, required String hint, required String? Function(String?) validator, TextInputType? keyboardType, bool obscure = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AurumSpacing.md),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-        Text(label, style: AurumTypography.label),
-        const SizedBox(height: AurumSpacing.xs),
-        TextFormField(controller: controller, obscureText: obscure, keyboardType: keyboardType, decoration: InputDecoration(hintText: hint), validator: validator),
-      ]),
-    );
-  }
-
-  Future<void> _submit() async {
-    if (!_acceptedTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please acknowledge the analysis and risk notice.')));
-      return;
-    }
-    if (!_formKey.currentState!.validate()) return;
-    await ref.read(authControllerProvider.notifier).register(name: _nameController.text.trim(), email: _emailController.text.trim(), password: _passwordController.text);
-    if (mounted && ref.read(authControllerProvider).valueOrNull?.isAuthenticated == true) context.go('/home');
   }
 }
 
@@ -229,75 +339,51 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   var _submitted = false;
-  var _isLoading = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: AurumColors.canvas, surfaceTintColor: Colors.transparent),
+      appBar: AppBar(backgroundColor: AurumColors.canvas),
       body: SafeArea(
-        top: false,
         child: Padding(
           padding: const EdgeInsets.all(AurumSpacing.lg),
-          child: _submitted ? _success() : _form(),
+          child: _submitted
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.mark_email_read_outlined, size: 64, color: AurumColors.gold),
+                    const SizedBox(height: AurumSpacing.lg),
+                    Text('Check your email', style: AurumTypography.h1),
+                    const SizedBox(height: AurumSpacing.sm),
+                    const Text('If an account exists, we sent password reset instructions.'),
+                    const SizedBox(height: AurumSpacing.xl),
+                    AurumButton(label: 'Back to Login', onPressed: () => context.go('/login')),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AurumBrand(compact: true),
+                    const SizedBox(height: AurumSpacing.xxl),
+                    Text('Reset your password', style: AurumTypography.h1),
+                    const SizedBox(height: AurumSpacing.sm),
+                    const Text('Enter your email and we will send reset instructions.'),
+                    const SizedBox(height: AurumSpacing.xxl),
+                    TextFormField(controller: _emailController, decoration: const InputDecoration(hintText: 'Email')),
+                    const SizedBox(height: AurumSpacing.lg),
+                    AurumButton(
+                      label: 'Send reset link',
+                      onPressed: () async {
+                        await ref.read(authRepositoryProvider).sendPasswordReset(_emailController.text.trim());
+                        setState(() => _submitted = true);
+                      },
+                    ),
+                  ],
+                ),
         ),
       ),
     );
   }
-
-  Widget _form() => Form(
-        key: _formKey,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-          const AurumBrand(compact: true),
-          const SizedBox(height: AurumSpacing.xxxl),
-          Text('Reset your password', style: AurumTypography.h1),
-          const SizedBox(height: AurumSpacing.sm),
-          const Text('Enter your email and we will send a reset link if an account exists.', style: AurumTypography.bodyLarge),
-          const SizedBox(height: AurumSpacing.xxl),
-          TextFormField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'you@example.com'), validator: _validateEmail),
-          const SizedBox(height: AurumSpacing.lg),
-          AurumButton(label: 'Send reset link', isLoading: _isLoading, onPressed: _isLoading ? null : _submit),
-        ]),
-      );
-
-  Widget _success() => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-        const Icon(Icons.mark_email_read_outlined, color: AurumColors.gold, size: 42),
-        const SizedBox(height: AurumSpacing.lg),
-        Text('Check your inbox', style: AurumTypography.h1),
-        const SizedBox(height: AurumSpacing.sm),
-        const Text('If an account matches that email, a password reset link is on its way.', style: AurumTypography.bodyLarge),
-        const SizedBox(height: AurumSpacing.xl),
-        AurumButton(label: 'Back to sign in', onPressed: () => context.go('/login')),
-      ]);
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    await ref.read(authRepositoryProvider).sendPasswordReset(_emailController.text.trim());
-    if (mounted) setState(() { _isLoading = false; _submitted = true; });
-  }
-}
-
-String? _validateEmail(String? value) {
-  final normalized = value?.trim() ?? '';
-  if (normalized.isEmpty || !normalized.contains('@') || !normalized.contains('.')) return 'Enter a valid email address.';
-  return null;
-}
-
-String? _validateRegistrationPassword(String? value) {
-  final password = value ?? '';
-  if (password.length < 12) return 'Use at least 12 characters.';
-  if (!RegExp(r'[a-z]').hasMatch(password) || !RegExp(r'[A-Z]').hasMatch(password) || !RegExp(r'[0-9]').hasMatch(password)) {
-    return 'Include uppercase, lowercase, and a number.';
-  }
-  return null;
 }
