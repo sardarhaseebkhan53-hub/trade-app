@@ -6,7 +6,6 @@ import '../../core/networking/aurum_backend_client.dart';
 import '../../core/storage/app_lock_service.dart';
 import '../../core/storage/biometric_service.dart';
 import '../../core/storage/secure_session_store.dart';
-import '../../domain/market_entities.dart';
 import '../models/market_data_models.dart';
 import '../models/market_models.dart';
 import '../models/user_data_models.dart';
@@ -63,13 +62,13 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 });
 
 // === STATE PROVIDERS ===
-final marketsProvider = FutureProvider.autoDispose.family<List<Asset>, String>((ref, query) async {
+final marketsProvider = FutureProvider.autoDispose.family<List<MarketAsset>, String>((ref, query) async {
   final repo = ref.read(marketRepositoryProvider);
   final snapshot = await repo.getMarkets(query: query);
   return snapshot.data;
 });
 
-final featuredAssetsProvider = FutureProvider<List<Asset>>((ref) async {
+final featuredAssetsProvider = FutureProvider<List<MarketAsset>>((ref) async {
   final repo = ref.read(marketRepositoryProvider);
   final snapshot = await repo.getFeaturedAssets();
   return snapshot.data;
@@ -100,7 +99,7 @@ class WatchlistController extends AsyncNotifier<Set<String>> {
   }
 }
 
-final watchlistAssetsProvider = FutureProvider<List<Asset>>((ref) async {
+final watchlistAssetsProvider = FutureProvider<List<MarketAsset>>((ref) async {
   final ids = await ref.watch(watchlistProvider.future);
   final repo = ref.read(marketRepositoryProvider);
   final snapshot = await repo.getAssetsByIds(ids);
@@ -178,16 +177,16 @@ class ChartRequest {
   final String timeframe;
 }
 
-final assetProvider = FutureProvider.family<dynamic, String>((ref, assetId) async {
+final assetProvider = FutureProvider.family<MarketAsset, String>((ref, assetId) async {
   final repo = ref.read(marketRepositoryProvider);
   final snap = await repo.getAsset(assetId);
   return snap.data;
 });
 
-final chartProvider = FutureProvider.family<List<dynamic>, ChartRequest>((ref, req) async {
+final chartProvider = FutureProvider.family<List<HistoricalPrice>, ChartRequest>((ref, req) async {
   final repo = ref.read(marketRepositoryProvider);
   final snap = await repo.getChart(req.assetId, req.timeframe);
-  return snap.data;
+  return snap.data.prices;
 });
 
 // === BIOMETRIC + GOOGLE PROVIDERS ===
@@ -199,23 +198,3 @@ final appLockServiceProvider = Provider<AppLockService>((ref) => AppLockService(
 final googleSignInProvider = Provider<GoogleSignIn>((ref) {
   return GoogleSignIn(scopes: ['email', 'profile']);
 });
-
-// Extend AuthController with Google method
-extension AuthControllerGoogle on AuthController {
-  Future<void> signInWithGoogle() async {
-    state = const AsyncData(AuthState(status: AuthStatus.authenticating));
-    state = await AsyncValue.guard(() async {
-      final googleUser = await ref.read(googleSignInProvider).signIn();
-      if (googleUser == null) {
-        throw Exception('Google sign-in was cancelled');
-      }
-
-      final googleAuth = await googleUser.authentication;
-      final idToken = googleAuth.idToken;
-
-      // Call backend with Google idToken (backend must support /auth/google)
-      final session = await ref.read(authRepositoryProvider).signInWithGoogle(idToken!);
-      return AuthState(status: AuthStatus.authenticated, profile: session.profile);
-    });
-  }
-}

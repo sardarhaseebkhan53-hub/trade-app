@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../shared/widgets/aurum_primitives.dart';

@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
-import '../../../domain/data_integrity.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../domain/market_regime.dart';
+import '../../../shared/models/market_data_models.dart';
+import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 import '../../../shared/widgets/data_freshness_indicator.dart';
@@ -65,13 +67,13 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(height: AurumSpacing.sm),
                     featured.when(
                       data: (assets) => Column(
-                        children: assets.take(3).map((a) => Padding(
+                        children: assets.take(3).map((MarketAsset asset) => Padding(
                           padding: const EdgeInsets.only(bottom: AurumSpacing.sm),
                           child: CryptoCard(
-                            asset: a,
-                            isWatched: watched.contains(a.id),
-                            onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(a.id),
-                            onTap: () => context.push('/asset/${a.id}'),
+                            asset: asset,
+                            isWatched: watched.contains(asset.id),
+                            onWatchToggle: () => ref.read(watchlistProvider.notifier).toggle(asset.id),
+                            onTap: () => context.push('/asset/${asset.id}'),
                           ),
                         )).toList(),
                       ),
@@ -199,7 +201,7 @@ class _Header extends StatelessWidget {
 
 class _MarketPulse extends StatelessWidget {
   const _MarketPulse({required this.overview});
-  final dynamic overview; // MarketOverview
+  final MarketOverview overview;
 
   @override
   Widget build(BuildContext context) {
@@ -209,10 +211,10 @@ class _MarketPulse extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Global market cap', style: AurumTypography.caption),
-          Text(AurumFormatters.compactCurrency(overview.totalMarketCapUsd ?? 0), style: AurumTypography.priceCard),
+          Text(AurumFormatters.compactCurrency(overview.totalMarketCapUsd), style: AurumTypography.priceCard),
           const SizedBox(height: AurumSpacing.sm),
           Text(
-            '${(overview.marketCapChange24h ?? 0) >= 0 ? '+' : ''}${(overview.marketCapChange24h ?? 0).toStringAsFixed(1)}%  •  BTC dom ${(overview.btcDominance ?? 0).toStringAsFixed(1)}%',
+            '${overview.marketCapChange24h >= 0 ? '+' : ''}${overview.marketCapChange24h.toStringAsFixed(1)}%  •  BTC dom ${overview.btcDominance.toStringAsFixed(1)}%',
             style: AurumTypography.body,
           ),
         ],
@@ -235,7 +237,7 @@ class _RegimeBadge extends StatelessWidget {
     );
 
     return AurumCard(
-      borderColor: AurumColors.gold.withOpacity(0.3),
+      borderColor: AurumColors.gold.withValues(alpha: 0.3),
       child: Row(
         children: [
           const Icon(Icons.trending_up, color: AurumColors.gold),
@@ -252,7 +254,7 @@ class _RegimeBadge extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AurumColors.gold.withOpacity(0.15),
+              color: AurumColors.gold.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text('${regime.confidence}/100', style: AurumTypography.label.copyWith(color: AurumColors.gold)),
@@ -330,18 +332,18 @@ class _MarketOverviewCard extends ConsumerWidget {
             ),
             const SizedBox(height: AurumSpacing.sm),
             Text(
-              AurumFormatters.compactCurrency(data.totalMarketCapUsd ?? 0),
+              AurumFormatters.compactCurrency(data.totalMarketCapUsd),
               style: AurumTypography.priceCard,
             ),
             Text(
-              '24h Vol: ${AurumFormatters.compactCurrency(data.totalVolumeUsd ?? 0)}  •  BTC dom ${(data.btcDominance ?? 0).toStringAsFixed(1)}%',
+              '24h Vol: ${AurumFormatters.compactCurrency(data.totalVolumeUsd)}  •  BTC dom ${data.btcDominance.toStringAsFixed(1)}%',
               style: AurumTypography.caption,
             ),
           ],
         ),
       ),
       loading: () => const LoadingSkeleton(height: 110),
-      error: (_, __) => const AurumErrorState(title: 'Overview unavailable'),
+      error: (_, __) => const AurumErrorState(title: 'Overview unavailable', message: 'Pull to refresh market data.'),
     );
   }
 }

@@ -6,8 +6,7 @@ import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../domain/data_integrity.dart';
-import '../../../domain/market_entities.dart';
+import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 import '../../../shared/widgets/charts.dart';
@@ -70,7 +69,7 @@ class _AssetBody extends ConsumerWidget {
     super.key,
   });
 
-  final Asset asset; // from domain/market_entities.dart
+  final MarketAsset asset;
   final bool isWatched;
   final String timeframe;
   final ValueChanged<String> onTimeframeChanged;
@@ -97,7 +96,7 @@ class _AssetBody extends ConsumerWidget {
 
           chartAsync.when(
             data: (points) => ProfessionalChart(
-              points: points.map((p) => p.price).toList(),
+              points: points.map((p) => p.priceUsd).toList(growable: false),
               timeframe: timeframe,
             ),
             loading: () => const LoadingSkeleton(height: 240),
@@ -195,7 +194,7 @@ class _Metric extends StatelessWidget {
 
 class _StatsGrid extends StatelessWidget {
   const _StatsGrid({required this.asset, super.key});
-  final Asset asset;
+  final MarketAsset asset;
 
   @override
   Widget build(BuildContext context) {
@@ -233,8 +232,8 @@ class _RiskDisclaimer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AurumCard(
-      color: AurumColors.warning.withOpacity(0.06),
-      borderColor: AurumColors.warning.withOpacity(0.3),
+      color: AurumColors.warning.withValues(alpha: 0.06),
+      borderColor: AurumColors.warning.withValues(alpha: 0.3),
       child: const Text(
         'Analysis is for informational purposes only. Markets are volatile.',
         style: AurumTypography.caption,
@@ -245,13 +244,12 @@ class _RiskDisclaimer extends StatelessWidget {
 
 class _DataIntegrityBanner extends StatelessWidget {
   const _DataIntegrityBanner({required this.asset, super.key});
-  final Asset asset;
+  final MarketAsset asset;
 
   @override
   Widget build(BuildContext context) {
     // Demo freshness — production would call DataIntegrityService.validateMarketData
     // and pass real timestamps from market repo.
-    final lastUpdated = DateTime.now().subtract(const Duration(seconds: 42));
     const freshness = DataFreshness.live;
 
     return Column(

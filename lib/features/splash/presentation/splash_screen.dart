@@ -25,7 +25,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _decideNextRoute() async {
-    await Future.delayed(const Duration(milliseconds: 1350));
+    await Future<void>.delayed(const Duration(milliseconds: 1350));
 
     if (!mounted) return;
 

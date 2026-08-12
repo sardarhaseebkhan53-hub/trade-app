@@ -57,7 +57,7 @@ void main() {
   test('client maps a timeout to a typed timeout exception', () async {
     final client = HttpMarketApiClient(
       config: config(),
-      client: MockClient((_) => Future<http.Response>.error(const TimeoutException('timed out'))),
+      client: MockClient((_) => Future<http.Response>.error(TimeoutException('timed out'))),
     );
 
     expect(client.getJson('/global'), throwsA(isA<ApiTimeoutException>()));

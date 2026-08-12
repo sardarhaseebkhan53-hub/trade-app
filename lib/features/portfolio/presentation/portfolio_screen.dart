@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
+import '../../../shared/models/market_models.dart';
 import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 import '../../../shared/widgets/financial_components.dart';
@@ -43,7 +44,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final featured = ref.watch(featuredAssetsProvider).valueOrNull ?? [];
+    final featured = ref.watch(featuredAssetsProvider).valueOrNull ?? const <MarketAsset>[];
 
     return Scaffold(
       appBar: AurumAppBar(
@@ -167,17 +168,21 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     );
   }
 
-  dynamic _getAsset(String id, [List<dynamic>? list]) {
-    final assets = list ?? (ref.read(featuredAssetsProvider).valueOrNull ?? []);
-    return assets.firstWhere((a) => a.id == id, orElse: () => null);
+  MarketAsset? _getAsset(String id, [List<MarketAsset>? list]) {
+    final assets = list ??
+        (ref.read(featuredAssetsProvider).valueOrNull ?? const <MarketAsset>[]);
+    for (final asset in assets) {
+      if (asset.id == id) return asset;
+    }
+    return null;
   }
 
-  void _showAddHolding(BuildContext context, List<dynamic> assets) {
-    String selected = assets.isNotEmpty ? assets.first.id : 'bitcoin';
+  void _showAddHolding(BuildContext context, List<MarketAsset> assets) {
+    var selected = assets.isNotEmpty ? assets.first.id : 'bitcoin';
     final qtyCtrl = TextEditingController(text: '0.1');
     final costCtrl = TextEditingController(text: '50000');
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => Padding(
@@ -193,10 +198,11 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
             const Text('Add Holding', style: AurumTypography.h3),
             const SizedBox(height: AurumSpacing.md),
             DropdownButtonFormField<String>(
-              value: selected,
-              items: assets.map<DropdownMenuItem<String>>((a) => DropdownMenuItem(
-                value: a.id,
-                child: Text('${a.symbol} — ${a.name}'),
+              initialValue: selected,
+              items: assets
+                  .map<DropdownMenuItem<String>>((MarketAsset asset) => DropdownMenuItem<String>(
+                value: asset.id,
+                child: Text('${asset.symbol} — ${asset.name}'),
               )).toList(),
               onChanged: (v) => selected = v ?? selected,
               decoration: const InputDecoration(labelText: 'Asset'),

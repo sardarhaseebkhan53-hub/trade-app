@@ -36,7 +36,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
         height: widget.height,
         width: widget.width,
         decoration: BoxDecoration(
-          color: AurumColors.surfaceElevated.withOpacity(0.6 + _controller.value * 0.3),
+          color: AurumColors.surfaceElevated.withValues(alpha: 0.6 + _controller.value * 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
       ),

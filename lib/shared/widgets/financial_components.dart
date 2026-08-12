@@ -5,7 +5,7 @@ import '../../app/theme/aurum_radius.dart';
 import '../../app/theme/aurum_spacing.dart';
 import '../../app/theme/aurum_typography.dart';
 import '../../core/utils/formatters.dart';
-import '../../domain/market_entities.dart';
+import '../models/market_models.dart';
 import 'aurum_primitives.dart';
 import 'charts.dart';
 
@@ -19,7 +19,7 @@ class CryptoCard extends StatelessWidget {
     this.onTap,
   });
 
-  final Asset asset;
+  final MarketAsset asset;
   final bool showMarketStats;
   final bool isWatched;
   final VoidCallback? onWatchToggle;
@@ -116,7 +116,7 @@ class PriceChangeBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: AurumRadius.pill,
       ),
       child: Text(
@@ -135,7 +135,7 @@ class AssetHeader extends StatelessWidget {
     super.key,
   });
 
-  final Asset asset;
+  final MarketAsset asset;
   final bool isWatched;
   final VoidCallback onWatchToggle;
 
@@ -186,7 +186,7 @@ class SignalCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AurumColors.positive.withOpacity(0.15),
+                  color: AurumColors.positive.withValues(alpha: 0.15),
                   borderRadius: AurumRadius.pill,
                 ),
                 child: Text('BULLISH', style: AurumTypography.label.copyWith(color: AurumColors.positive)),
@@ -219,7 +219,7 @@ class AIInsightCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AurumCard(
       onTap: onTap,
-      borderColor: AurumColors.gold.withOpacity(0.3),
+      borderColor: AurumColors.gold.withValues(alpha: 0.3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

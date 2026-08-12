@@ -11,6 +11,7 @@ abstract final class AurumRoutes {
   static const portfolio = '/portfolio';
   static const journal = '/journal';
   static const scanner = '/scanner';
+  static const signals = '/signals';
   static const profile = '/profile';
   static const asset = '/asset';
   static const watchlist = '/watchlist';

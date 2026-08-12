@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trade_app/features/markets/data/mock_market_repository.dart';
+import 'package:aurum/features/markets/data/mock_market_repository.dart';
 
 void main() {
   group('MockMarketRepository', () {
@@ -18,7 +18,7 @@ void main() {
 
     test('provides chart data', () async {
       final chart = await repo.getChart('bitcoin', '1D');
-      expect(chart.data.length, greaterThan(5));
+      expect(chart.data.prices.length, greaterThan(5));
     });
   });
 }

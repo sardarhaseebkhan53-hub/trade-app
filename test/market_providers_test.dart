@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('markets provider resolves a typed loading-to-success snapshot', () async {
+  test('markets provider resolves from loading to a typed asset list', () async {
     final container = ProviderContainer(
       overrides: [
         marketRepositoryProvider.overrideWithValue(MockMarketRepository()),
@@ -14,9 +14,9 @@ void main() {
 
     expect(container.read(marketsProvider('')).isLoading, isTrue);
 
-    final snapshot = await container.read(marketsProvider('').future);
+    final assets = await container.read(marketsProvider('').future);
 
-    expect(snapshot.data, isNotEmpty);
-    expect(snapshot.source, 'Demo mock data');
+    expect(assets, isNotEmpty);
+    expect(assets.first.id, 'bitcoin');
   });
 }

@@ -138,7 +138,7 @@ class _MarketPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (points.length < 2) return;
-    final gridPaint = Paint()..color = AurumColors.border.withOpacity(0.7)..strokeWidth = 1;
+    final gridPaint = Paint()..color = AurumColors.border.withValues(alpha: 0.7)..strokeWidth = 1;
     for (var step = 1; step < 4; step++) {
       final y = size.height / 4 * step;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
@@ -160,14 +160,14 @@ class _MarketPainter extends CustomPainter {
     }
     fill.lineTo(size.width, size.height);
     fill.close();
-    canvas.drawPath(fill, Paint()..color = AurumColors.positive.withOpacity(0.08));
+    canvas.drawPath(fill, Paint()..color = AurumColors.positive.withValues(alpha: 0.08));
     canvas.drawPath(path, Paint()..color = AurumColors.positive..style = PaintingStyle.stroke..strokeWidth = 2.2..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
     if (selectedIndex != null) {
       final x = (selectedIndex! / (points.length - 1)) * size.width;
       final y = size.height - ((points[selectedIndex!] - range.min) / range.delta * size.height);
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), Paint()..color = AurumColors.gold.withOpacity(0.65)..strokeWidth = 1);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), Paint()..color = AurumColors.gold.withValues(alpha: 0.65)..strokeWidth = 1);
       canvas.drawCircle(Offset(x, y), 4, Paint()..color = AurumColors.gold);
-      canvas.drawCircle(Offset(x, y), 7, Paint()..color = AurumColors.gold.withOpacity(0.22));
+      canvas.drawCircle(Offset(x, y), 7, Paint()..color = AurumColors.gold.withValues(alpha: 0.22));
     }
   }
 

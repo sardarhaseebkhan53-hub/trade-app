@@ -90,12 +90,14 @@ class RemoteWatchlistRepository implements WatchlistRepository {
   final AurumBackendClient _client;
 
   @override
-  Future<Set<String>> getAssetIds() async => _client
-      .getList('/watchlist')
-      .map(BackendJson.map)
-      .map((Map<String, Object?> item) => BackendJson.string(item, 'assetId'))
-      .where((String id) => id.isNotEmpty)
-      .toSet();
+  Future<Set<String>> getAssetIds() async {
+    final values = await _client.getList('/watchlist');
+    return values
+        .map(BackendJson.map)
+        .map((Map<String, Object?> item) => BackendJson.string(item, 'assetId'))
+        .where((String id) => id.isNotEmpty)
+        .toSet();
+  }
 
   @override
   Future<void> setWatched(String assetId, bool isWatched) async {

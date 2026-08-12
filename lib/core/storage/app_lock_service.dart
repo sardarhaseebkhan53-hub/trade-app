@@ -1,6 +1,4 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:local_auth/local_auth.dart';
-
 import 'biometric_service.dart';
 
 /// Configurable application lock timeouts (per V3 security prompt).
@@ -55,7 +53,6 @@ class AppLockService {
   static const _lastActiveKey = 'app_last_active_v1';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final LocalAuthentication _localAuth = LocalAuthentication();
   final BiometricService _biometric = BiometricService();
 
   Future<bool> isAppLockEnabled() async {
@@ -109,7 +106,7 @@ class AppLockService {
     final enabled = await _biometric.isBiometricEnabled();
 
     if (enabled && available) {
-      return await _biometric.authenticate(reason: reason);
+      return _biometric.authenticate(reason: reason);
     }
 
     // Fallback: in a real implementation we would show password dialog.

@@ -6,6 +6,7 @@ import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
 import '../../../core/storage/first_launch_store.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
+import 'anti_scam_notice.dart';
 
 class SafetyPrivacyCenterScreen extends StatefulWidget {
   const SafetyPrivacyCenterScreen({super.key});
@@ -140,7 +141,7 @@ class _SafetyPrivacyCenterScreenState extends State<SafetyPrivacyCenterScreen> {
   }
 
   void _showDisclosure(BuildContext context, String title, String content) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AurumColors.surface,

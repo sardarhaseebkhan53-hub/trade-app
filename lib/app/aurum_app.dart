@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/storage/app_lock_service.dart';
+import '../shared/models/user_data_models.dart';
 import '../shared/services/providers.dart';
 import 'routing/app_router.dart';
 import 'theme/aurum_theme.dart';
@@ -50,7 +51,7 @@ class _AurumAppState extends ConsumerState<AurumApp> with WidgetsBindingObserver
       // For simplicity, we navigate to login (which will fall back to biometric if enabled)
       // In a full build we would show an in-app lock modal with biometric.
       router.go('/login');
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future<void>.delayed(const Duration(milliseconds: 400));
       _lockShown = false;
     }
     await _appLock.recordActivity();

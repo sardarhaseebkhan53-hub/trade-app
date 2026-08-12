@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
 import '../../../app/theme/aurum_typography.dart';
-import '../../../shared/services/providers.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
 
-class AiAnalystScreen extends ConsumerStatefulWidget {
+class AiAnalystScreen extends StatefulWidget {
   const AiAnalystScreen({super.key});
 
   @override
-  ConsumerState<AiAnalystScreen> createState() => _AiAnalystScreenState();
+  State<AiAnalystScreen> createState() => _AiAnalystScreenState();
 }
 
-class _AiAnalystScreenState extends ConsumerState<AiAnalystScreen> {
+class _AiAnalystScreenState extends State<AiAnalystScreen> {
   final TextEditingController _controller = TextEditingController();
   final List<_ChatMessage> _messages = [];
   bool _isLoading = false;
 
-  void _sendMessage() async {
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
@@ -30,9 +34,10 @@ class _AiAnalystScreenState extends ConsumerState<AiAnalystScreen> {
     });
 
     // Simulate structured AI response (in real build this would call backend AI)
-    await Future.delayed(const Duration(milliseconds: 650));
+    await Future<void>.delayed(const Duration(milliseconds: 650));
 
     final response = _generateMockResponse(text);
+    if (!mounted) return;
 
     setState(() {
       _messages.add(_ChatMessage(text: response, isUser: false));
@@ -69,7 +74,7 @@ class _AiAnalystScreenState extends ConsumerState<AiAnalystScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: msg.isUser ? AurumColors.gold.withOpacity(0.15) : AurumColors.surface,
+                      color: msg.isUser ? AurumColors.gold.withValues(alpha: 0.15) : AurumColors.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(msg.text, style: AurumTypography.body),
