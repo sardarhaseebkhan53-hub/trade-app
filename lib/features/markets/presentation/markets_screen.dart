@@ -6,11 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/aurum_colors.dart';
 import '../../../app/theme/aurum_spacing.dart';
-import '../../../app/theme/aurum_typography.dart';
 import '../../../shared/services/providers.dart';
-import '../../../domain/broker_signal.dart';
 import '../../../shared/widgets/aurum_primitives.dart';
-import '../../../shared/widgets/broker_components.dart';
+import '../../../shared/widgets/financial_components.dart';
 import '../../../shared/widgets/state_components.dart';
 
 class MarketsScreen extends ConsumerStatefulWidget {
@@ -43,6 +41,7 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
   @override
   Widget build(BuildContext context) {
     final assetsAsync = ref.watch(marketsProvider(_query));
+    final watched = ref.watch(watchlistProvider).valueOrNull ?? <String>{};
 
     return Scaffold(
       appBar: AurumAppBar(
